@@ -1,0 +1,17 @@
+{
+  "name": "animals-place",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node ./bin/start",
+    "dev": "DEBUG=* nodemon"
+  },
+  "dependencies": {
+    "debug": "~4.3.4",
+    "express": "~4.18.2",
+    "http-errors": "^2.0.0",
+    "mongoose": "^7.5.3",
+    "morgan": "~1.10.0"
+  }
+}
