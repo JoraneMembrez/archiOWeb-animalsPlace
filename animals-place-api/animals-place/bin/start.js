@@ -7,13 +7,14 @@
 import app from "../app.js";
 import createDebugger from "debug";
 import http from "http";
+import * as config from "../config.js";
 
-const debug = createDebugger('animals-place:server')
+const debug = createDebugger("animals-place:server");
 /**
  * Get port from environment and store in Express.
  */
 
-const port = normalizePort(process.env.PORT || "3000");
+const port = config.port;
 app.set("port", port);
 
 /**

@@ -12,7 +12,6 @@ mongoose.connect(config.databaseUrl);
 
 const app = express();
 // définit sur quel port celui-ci va être lancé
-const port = 8000;
 
 app.use(logger("dev"));
 app.use(express.json());
@@ -35,11 +34,6 @@ app.use(function (err, req, res, next) {
   // Send the error status
   res.status(err.status || 500);
   res.send(err.message);
-});
-
-// permet d'écouter sur le port 8000
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
 });
 
 export default app;
