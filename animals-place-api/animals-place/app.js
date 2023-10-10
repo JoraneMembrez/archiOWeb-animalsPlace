@@ -5,8 +5,10 @@ import indexRouter from "./routes/index.js";
 import usersRouter from "./routes/users.js";
 import mongoose from "mongoose";
 import debug from "debug";
+import * as config from "./config.js";
 
-mongoose.connect("mongodb://127.0.0.1/animals-place-databse");
+//server.listen(config.port);
+mongoose.connect(config.databaseUrl);
 
 const app = express();
 // définit sur quel port celui-ci va être lancé
