@@ -4,11 +4,9 @@ const Schema = mongoose.Schema;
 const userSchema = new Schema({
   firstName: {
     type: String,
-    required: true,
   },
   lastName: {
     type: String,
-    required: true,
   },
   email: {
     type: String,
@@ -25,8 +23,13 @@ const userSchema = new Schema({
   },
   address: {
     type: String,
-    required: true,
   },
+  animals: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Animal",
+    },
+  ],
 });
 
 userSchema.set("toJSON", {
