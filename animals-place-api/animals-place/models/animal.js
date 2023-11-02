@@ -16,7 +16,6 @@ const animalSchema = new Schema({
   gender: {
     type: String,
     enum: ["Male", "Female", "Other"],
-    required: true,
   },
   profilePictureURL: {
     type: String,

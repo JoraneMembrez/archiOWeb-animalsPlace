@@ -3,6 +3,8 @@ import express from "express";
 import bcrypt from "bcrypt";
 import mongoose, { Schema } from "mongoose";
 import User from "../models/user.js";
+import { authenticate, authorize } from "./auth.js";
+import { idValidation } from "../utils.js";
 
 const router = express.Router();
 
@@ -51,21 +53,56 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-/*
+// Modifier un utilisateur
+router.post(
+  "/:userID",
+  [idValidation, authenticate, authorize("admin")],
+  async (req, res, next) => {
+    try {
+      const userId = req.params.userID;
+      const updates = req.body; // Les données de mise à jour de l'utilisateur
+
+      // Vérifiez si l'utilisateur avec l'ID spécifié existe
+      const user = await User.findById(userId);
+
+      if (!user) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+
+      // Mettez à jour les informations de l'utilisateur
+      // Par exemple, vous pouvez utiliser la méthode `Object.assign` pour fusionner les données mises à jour avec les données existantes de l'utilisateur.
+      Object.assign(user, updates);
+
+      // Enregistrez les modifications dans la base de données
+      const updatedUser = await user.save();
+
+      res.status(200).json(updatedUser); // Réponse avec l'utilisateur mis à jour
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+//supprimer l'utilisateur
 router.delete(
   "/:userID",
-  idValidation,
-  authenticate,
-  authorize("admin"),
-  function (req, res, next) {
-    User.deleteOne({ _id: req.params.userID }, function (err, user) {
-      if (err) {
-        return next(err);
+  [idValidation, authenticate, authorize("admin")],
+  async (req, res) => {
+    try {
+      const deletedUser = await User.deleteOne({ _id: req.params.userID });
+
+      if (deletedUser.deletedCount === 1) {
+        res.status(200).json({ message: "User deleted" });
+      } else {
+        res.status(404).json({ message: "User not found" });
       }
-      res.send("User deleted");
-    });
+    } catch (error) {
+      // Gérer les erreurs ici
+      res.status(500).json({ error: "Internal Server Error" });
+    }
   }
-); */
+);
 
 // export default router;
 export default router;

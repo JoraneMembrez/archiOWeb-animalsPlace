@@ -4,6 +4,7 @@ const Schema = mongoose.Schema;
 const userSchema = new Schema({
   firstName: {
     type: String,
+    required: true,
   },
   lastName: {
     type: String,
@@ -13,6 +14,7 @@ const userSchema = new Schema({
     required: true,
     unique: true,
   },
+
   password: {
     type: String,
     required: true,
@@ -30,6 +32,11 @@ const userSchema = new Schema({
       ref: "Animal",
     },
   ],
+  role: {
+    type: String,
+    enum: ["admin", "user"],
+    default: "user",
+  },
 });
 
 userSchema.set("toJSON", {
