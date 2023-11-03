@@ -5,6 +5,7 @@ import indexRouter from "./routes/index.js";
 import usersRouter from "./routes/users.js";
 import animalsRouter from "./routes/animals.js";
 import authRouter from "./routes/auth.js";
+import meetingsRouter from "./routes/meetings.js";
 import mongoose from "mongoose";
 import debug from "debug";
 import * as config from "./config.js";
@@ -23,6 +24,7 @@ app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/animals", animalsRouter);
 app.use("/auth", authRouter);
+app.use("/meetings", meetingsRouter);
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));

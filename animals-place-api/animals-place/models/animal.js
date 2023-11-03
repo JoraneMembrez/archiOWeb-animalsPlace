@@ -49,6 +49,17 @@ const animalSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "User",
   },
+  likes: [
+    {
+      user: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+      date: {
+        type: Date,
+      },
+    },
+  ],
 });
 
 export default mongoose.model("Animal", animalSchema);
