@@ -5,6 +5,7 @@ import mongoose, { Schema } from "mongoose";
 import User from "../models/user.js";
 import { authenticate, authorize } from "./auth.js";
 import { idValidation } from "../utils.js";
+import { broadcastMessage } from "../ws.js";
 
 const router = express.Router();
 
@@ -18,6 +19,31 @@ router.get("/", function (req, res, next) {
     .catch((err) => {
       next(err);
     });
+});
+
+// on peut chercher tous les utilisateurs uniquement si on est admin
+router.get("/all", authenticate, authorize("admin"), function (req, res, next) {
+  User.find()
+    .sort("name")
+    .exec()
+    .then((users) => {
+      res.send(users);
+    });
+});
+
+router.get("/:userID", authenticate, idValidation, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.userID);
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.send(user);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Créer un utilisateur
@@ -45,7 +71,7 @@ router.post("/", async (req, res, next) => {
 
       res.status(201).json(savedUser); // Réponse 201 pour la création réussie
       broadcastMessage({
-        message: "Il y a un nouvel utilisateur sur Animals Place!",
+        message: "Il y a un nouvel utilisateur sur cinemate !",
       });
     }
   } catch (err) {

@@ -21,11 +21,14 @@ const animalSchema = new Schema({
     type: String,
   },
 
-  interests: [
-    {
-      type: String,
+  picturesURL: {
+    type: [String],
+    createdDate: {
+      type: Date,
+      default: Date.now,
     },
-  ],
+  },
+
   location: {
     type: String,
   },
@@ -49,11 +52,11 @@ const animalSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "User",
   },
-  likes: [
+  animals_liked: [
     {
-      user: {
+      animal: {
         type: Schema.Types.ObjectId,
-        ref: "User",
+        ref: "Animal",
       },
       date: {
         type: Date,

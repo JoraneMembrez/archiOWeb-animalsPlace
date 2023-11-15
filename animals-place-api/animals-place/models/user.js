@@ -14,7 +14,6 @@ const userSchema = new Schema({
     required: true,
     unique: true,
   },
-
   password: {
     type: String,
     required: true,
@@ -36,6 +35,14 @@ const userSchema = new Schema({
     type: String,
     enum: ["admin", "user"],
     default: "user",
+  },
+  geolocation_lon: {
+    type: Number,
+    default: 0,
+  },
+  geolocation_lat: {
+    type: Number,
+    default: 0,
   },
 });
 
