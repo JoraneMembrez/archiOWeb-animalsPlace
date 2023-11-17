@@ -9,6 +9,7 @@ import { broadcastMessage } from "../ws.js";
 
 const router = express.Router();
 
+// REVOIR
 router.get("/", function (req, res, next) {
   User.find()
     .sort("name")
@@ -69,7 +70,7 @@ router.post("/", async (req, res, next) => {
       newUser.password = hashedPassword;
       const savedUser = await newUser.save();
 
-      res.status(201).json(savedUser); // Réponse 201 pour la création réussie
+      res.status(201).json(savedUser); // Réponse 201 pour la création réussie -> revoir le broadcast
       broadcastMessage({
         message: "Il y a un nouvel utilisateur sur cinemate !",
       });

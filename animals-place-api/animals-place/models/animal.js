@@ -20,6 +20,9 @@ const animalSchema = new Schema({
   profilePictureURL: {
     type: String,
   },
+  description: {
+    type: String,
+  },
 
   picturesURL: {
     type: [String],

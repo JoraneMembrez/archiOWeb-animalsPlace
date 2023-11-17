@@ -2,8 +2,14 @@ import express from "express";
 import Animal from "../models/animal.js";
 import User from "../models/user.js";
 import { authenticate } from "./auth.js";
+import { broadcastMessage } from "../ws.js";
 
 const router = express.Router();
+
+router.get("/test", function (req, res, next) {
+  // Do stuff...
+  broadcastMessage({ hello: "world" });
+});
 
 router.get("/", authenticate, async function (req, res, next) {
   try {
