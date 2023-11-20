@@ -2,9 +2,10 @@ import express from "express";
 import User from "../models/user.js";
 import Animal from "../models/animal.js";
 import Meeting from "../models/meeting.js";
-import Chat from "../models/chat.js";
 import { authenticate } from "./auth.js";
 import animal from "../models/animal.js";
+import mongoose from "mongoose";
+import { broadcastMessage, sendMessageToConnectedClient } from "../ws.js";
 
 const router = express.Router();
 
@@ -12,6 +13,15 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
   const animalID = req.params.animalID; // ID de l'animal aimé
   const userID = req.body.userID; // ID de l'utilisateur
   const animalUserID = req.body.animalUserID; // ID de l'utilisateur de l'animal aimé
+
+  if (
+    !mongoose.Types.ObjectId.isValid(animalID) ||
+    !mongoose.Types.ObjectId.isValid(userID) ||
+    !mongoose.Types.ObjectId.isValid(animalUserID)
+  ) {
+    res.status(400).json({ message: "Invalid ID format" });
+    return;
+  }
 
   try {
     const animal_liked = await Animal.findById(animalID);
@@ -60,30 +70,14 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
           description: "Description de la rencontre",
         });
 
-        // création d'un nouveau chat
-        console.log("userID", userID);
-        console.log("animalUserID", animalUserID);
-        console.log("animal_user", animal_user);
-        console.log("animal_user", animal_user);
-
-        const newChat = new Chat({
-          user1: userID,
-          user2: animalUserID,
-          animal1: animalID,
-          animal2: animal_user._id,
-        });
-        newChat
-          .save()
-          .then((chat) => {
-            console.log("Nouveau chat créé :", chat);
-          })
-          .catch((error) => {
-            console.error("Erreur lors de la création du chat :", error);
-          });
-
         const savedMeeting = await newMeeting.save();
         res.status(200).json({ message: "Matched" });
+        broadcastMessage({ message: "Un nouveau match sur Animal Place !" });
       } else {
+        const targetClient = animal_user;
+        const targetMessage = "Un nouveau like !";
+        // envoie un message a la personne qui a été liké
+        sendMessageToConnectedClient(targetClient, targetMessage);
         res.status(200).json({ message: "Liked" });
       }
     } else {

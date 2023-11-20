@@ -10,7 +10,7 @@ import { broadcastMessage } from "../ws.js";
 const router = express.Router();
 
 // REVOIR
-router.get("/", function (req, res, next) {
+router.get("/", authenticate, function (req, res, next) {
   User.find()
     .sort("name")
     .exec()
@@ -70,9 +70,9 @@ router.post("/", async (req, res, next) => {
       newUser.password = hashedPassword;
       const savedUser = await newUser.save();
 
-      res.status(201).json(savedUser); // Réponse 201 pour la création réussie -> revoir le broadcast
+      res.status(201).json(savedUser); // Réponse 201 pour la création réussie
       broadcastMessage({
-        message: "Il y a un nouvel utilisateur sur cinemate !",
+        message: "Il y a un nouvel utilisateur sur Animals Place !",
       });
     }
   } catch (err) {

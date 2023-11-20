@@ -3,6 +3,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import { jwtSecret } from "../config.js";
+import { broadcastMessage } from "../ws.js";
 
 const router = express.Router();
 
@@ -37,6 +38,9 @@ router.post("/login", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+  broadcastMessage({
+    message: "Un utilisateur vient de se connecter sur Animal Place",
+  });
 });
 
 export default router;

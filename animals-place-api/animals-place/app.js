@@ -6,7 +6,6 @@ import usersRouter from "./routes/users.js";
 import animalsRouter from "./routes/animals.js";
 import authRouter from "./routes/auth.js";
 import meetingsRouter from "./routes/meetings.js";
-import chatsRouter from "./routes/chats.js";
 import localisationRouter from "./routes/localisation.js";
 //import chatsRouter2 from "./routes/chats2.js";
 import mongoose from "mongoose";
@@ -29,7 +28,6 @@ app.use("/users", usersRouter);
 app.use("/animals", animalsRouter);
 app.use("/auth", authRouter);
 app.use("/meetings", meetingsRouter);
-app.use("/chats", chatsRouter);
 app.use("/localisation", localisationRouter);
 //app.use("/chats2", chatsRouter2);
 // catch 404 and forward to error handler

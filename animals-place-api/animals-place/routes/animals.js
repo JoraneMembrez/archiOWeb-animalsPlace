@@ -6,11 +6,6 @@ import { broadcastMessage } from "../ws.js";
 
 const router = express.Router();
 
-router.get("/test", function (req, res, next) {
-  // Do stuff...
-  broadcastMessage({ hello: "world" });
-});
-
 router.get("/", authenticate, async function (req, res, next) {
   try {
     const species_filter = req.query.species;
