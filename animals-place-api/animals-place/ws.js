@@ -4,7 +4,8 @@ import { WebSocketServer } from "ws";
 const debug = createDebugger("express-api:messaging");
 
 const clients = [];
-let connectedUsers = 0;
+
+const users_websocket = new Map();
 
 export function createWebSocketServer(httpServer) {
   debug("Creating WebSocket server");
@@ -34,17 +35,12 @@ export function createWebSocketServer(httpServer) {
       // Handle the message.
       onMessageReceived(ws, parsedMessage);
       console.log("message received : ", parsedMessage);
-
-      connectedUsers++;
-      broadcastMessage({ connectedUsers: connectedUsers });
     });
 
     // Clean up disconnected clients.
     ws.on("close", () => {
       clients.splice(clients.indexOf(ws), 1);
       debug("WebSocket client disconnected");
-      connectedUsers--;
-      broadcastMessage({ connectedUsers: connectedUsers });
     });
   });
 }
@@ -56,46 +52,37 @@ export function broadcastMessage(message) {
 
   clients.forEach((c) => c.send(JSON.stringify(message)));
   console.log("un message a été envoyé : ", message);
-  console.log("connectedUsers : ", connectedUsers);
 }
 
-export function sendMessageToConnectedClient(client, message) {
+export function sendMessageToConnectedClient(userID, message) {
   debug(`Sending message to a connected client: ${JSON.stringify(message)}`);
 
-  if (client.readyState === client.OPEN) {
+  console.log("userID destination : ", userID);
+  console.log("message : ", message);
+
+  const client = users_websocket.get(userID);
+  console.log("client : ", client);
+
+  if (client && client.readyState === client.OPEN) {
     try {
       client.send(JSON.stringify(message));
+      console.log("Un message a été envoyé : ", message);
     } catch (error) {
-      return debug("Invalid JSON message received from client");
+      console.error("Error sending message to client with ID");
     }
+  } else {
+    console.error(
+      "Client with ID " + userID + " is not connected or does not exist."
+    );
   }
-
-  console.log("un message a été envoyé : ", message);
-}
-
-export function sendMessageMatched(clients, message) {
-  const client1 = clients[0];
-  const client2 = clients[1];
-
-  [client1, client2].forEach((client) => {
-    if (client && client.readyState === client.OPEN) {
-      try {
-        client.send(JSON.stringify(message));
-        console.log("Un message a été envoyé : ", message);
-      } catch (error) {
-        console.error("Error sending message to client with ID");
-      }
-    } else {
-      console.error(
-        "Client with ID",
-        client._socket.remoteAddress,
-        "is not connected or does not exist."
-      );
-    }
-  });
 }
 
 function onMessageReceived(ws, message) {
   debug(`Received WebSocket message: ${JSON.stringify(message)}`);
   // Do something with message...
+
+  if (message.type === "new_user") {
+    users_websocket.set(message.id, ws);
+    console.log("users_websocket : ", users_websocket);
+  }
 }

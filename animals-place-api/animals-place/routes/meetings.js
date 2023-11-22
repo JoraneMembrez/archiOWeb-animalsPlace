@@ -5,89 +5,88 @@ import Meeting from "../models/meeting.js";
 import { authenticate, authorize } from "./auth.js";
 import animal from "../models/animal.js";
 import mongoose from "mongoose";
-import {
-  broadcastMessage,
-  sendMessageMatched,
-  sendMessageToConnectedClient,
-} from "../ws.js";
+import { broadcastMessage, sendMessageToConnectedClient } from "../ws.js";
 
 const router = express.Router();
 
 router.post("/like/:animalID", authenticate, async (req, res, next) => {
-  const animalID = req.params.animalID; // ID de l'animal aimé
+  const animalID_liked = req.params.animalID; // ID de l'animal aimé
   const userID = req.body.userID; // ID de l'utilisateur
-  const animalUserID = req.body.animalUserID; // ID de l'utilisateur de l'animal aimé
+  const animalID_liking = req.body.animalUserID; // ID de l'animal qui like
 
   if (
-    !mongoose.Types.ObjectId.isValid(animalID) ||
+    !mongoose.Types.ObjectId.isValid(animalID_liked) ||
     !mongoose.Types.ObjectId.isValid(userID) ||
-    !mongoose.Types.ObjectId.isValid(animalUserID)
+    !mongoose.Types.ObjectId.isValid(animalID_liking)
   ) {
     res.status(400).json({ message: "Invalid ID format" });
     return;
   }
 
   try {
-    const animal_liked = await Animal.findById(animalID);
-    const animal_user = await Animal.findById(animalUserID);
+    const animal_liked = await Animal.findById(animalID_liked);
+    const animal_liking = await Animal.findById(animalID_liking);
 
     if (!animal_liked) {
       res.status(404).json({ message: "Animal not found" });
       return;
     }
 
-    if (!animal_user) {
+    if (!animal_liking) {
       res.status(404).json({ message: "Animal user not found" });
       return;
     }
 
     // Vérifier si l'utilisateur a déjà aimé cet animal, si non, ajouter un like
-    const likeIndex = animal_user.animals_liked.findIndex((like) =>
-      like.animal.equals(animalID)
+    const likeIndex = animal_liking.animals_liked.findIndex((like) =>
+      like.animal.equals(animalID_liked)
     );
 
     if (likeIndex === -1) {
       // L'utilisateur n'a pas encore aimé cet animal, ajouter un like
 
-      animal_user.animals_liked.push({
+      animal_liking.animals_liked.push({
         animal: animal_liked,
         date: new Date(),
       });
 
-      await animal_user.save();
+      await animal_liking.save();
 
       // Vérifier si cet animal a également aimé l'utilisateur, si oui, créer une rencontre
 
       const likebackIndex = animal_liked.animals_liked.findIndex(
         (like_of_other_animal) =>
-          like_of_other_animal.animal.equals(animal_user._id)
+          like_of_other_animal.animal.equals(animal_liking._id)
       );
 
       if (likebackIndex !== -1) {
         // Créez la rencontre ici en utilisant le modèle Meeting
         const newMeeting = new Meeting({
           owner: userID,
-          animal1: animalID,
-          animal2: animal_user._id,
+          animal1: animalID_liked,
+          animal2: animalID_liking,
           date: new Date(),
           location: "Lieu de la rencontre",
           description: "Description de la rencontre",
         });
-        const targetClient = [animal_user, animal_liked];
+        const client1 = animal_liking.owner._id.toString();
+        const client2 = animal_liked.owner._id.toString();
         // ajouter dans les deux animaux sous matches l'id de l'autre animal
-        animal_user.matches.push(animal_liked);
-        animal_liked.matches.push(animal_user);
+        animal_liking.matches.push(animal_liked);
+        animal_liked.matches.push(animal_liking);
 
-        await animal_user.save();
+        await animal_liking.save();
         await animal_liked.save();
 
         const targetMessage = "Un nouveau Match !";
         // il faut pousser dnas le tableau des matched de l'animal en question        // envoie un message aux 2 personnes ayant matché
-        /* sendMessageMatched(targetClient, targetMessage); */
+
+        sendMessageToConnectedClient(client1, targetMessage);
+        sendMessageToConnectedClient(client2, targetMessage);
         const savedMeeting = await newMeeting.save();
         res.status(200).json({ message: "Matched" });
       } else {
-        const targetClient = animal_user;
+        const targetClient = animal_liked.owner._id.toString();
         const targetMessage = "Un nouveau like !";
         // envoie un message a la personne qui a été liké
         sendMessageToConnectedClient(targetClient, targetMessage);
