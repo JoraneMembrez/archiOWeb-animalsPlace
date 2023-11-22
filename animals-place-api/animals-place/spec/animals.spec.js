@@ -11,6 +11,7 @@ let johnDoe;
 let janeDoe;
 let johnsAnimal;
 let janesAnimal;
+
 beforeEach(async function () {
   // Création de 2 utilisateurs avant de récupérer la liste.
   [johnDoe, janeDoe] = await Promise.all([

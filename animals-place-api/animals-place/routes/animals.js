@@ -1,11 +1,13 @@
 import express from "express";
 import Animal from "../models/animal.js";
 import User from "../models/user.js";
+import Meeting from "../models/meeting.js";
 import { authenticate } from "./auth.js";
 import { broadcastMessage } from "../ws.js";
 
 const router = express.Router();
 
+// on peut voir tous les animaux sauf les notres
 router.get("/", authenticate, async function (req, res, next) {
   try {
     const species_filter = req.query.species;
@@ -34,15 +36,15 @@ router.get("/", authenticate, async function (req, res, next) {
   }
 });
 
+// on peut voir tous ses animaux 🐒
 router.get("/myAnimals", authenticate, async function (req, res, next) {
   try {
-    // Récupérez l'ID de l'utilisateur connecté à partir des données d'authentification ou de la session
     const userID = req.currentUserId;
 
-    // requête de recherche pour récupérer tous les animaux dont le propriétaire est l'utilisateur actuel
+    // Requête pour récupérer tous les animaux dont le propriétaire est l'utilisateur actuel, triés par ordre alphabétique du nom
     const animals = await Animal.find({ owner: userID })
-      .populate("name")
-      .populate("owner")
+      .collation({ locale: "en", strength: 2 }) // Utiliser pour ignorer les majuscules
+      .sort({ name: 1 })
       .exec();
 
     res.send(animals);
@@ -51,6 +53,7 @@ router.get("/myAnimals", authenticate, async function (req, res, next) {
   }
 });
 
+// compte le nombre d'animal de chaque espèces qu'il y a sur la plateforme 🔢
 router.get("/count", authenticate, async function (req, res, next) {
   try {
     // Récupérez l'ID de l'utilisateur connecté à partir des données d'authentification ou de la session
@@ -111,37 +114,36 @@ router.post("/", authenticate, async (req, res, next) => {
 
 router.delete("/:animalId", authenticate, async (req, res, next) => {
   try {
-    // Recherche de l'animal par ID
-    const animal = await Animal.findById(req.params.animalId);
+    const animalId = req.params.animalId;
+    const deletedAnimal = await Animal.findOneAndDelete({
+      _id: animalId,
+      owner: req.currentUserId, // Assurez-vous que seul le propriétaire peut supprimer
+    });
 
-    if (!animal) {
-      // L'animal n'existe pas, renvoyez une erreur
-      const error = new Error("L'animal n'existe pas");
+    if (!deletedAnimal) {
+      const error = new Error(
+        "L'animal n'existe pas ou vous n'êtes pas autorisé à le supprimer"
+      );
       error.status = 404;
       throw error;
     }
 
-    // Vérifiez si l'utilisateur connecté est le propriétaire de l'animal
-    if (animal.owner.toString() !== req.currentUserId) {
-      // L'utilisateur n'est pas autorisé à supprimer cet animal
-      const error = new Error(
-        "Vous n'êtes pas autorisé à supprimer cet animal"
-      );
-      error.status = 403;
-      throw error;
-    }
-
-    // Supprimer l'animal de la base de données
-    await animal.remove();
-
-    // Retirez également l'animal de la liste d'animaux de l'utilisateur
+    // Supprimez l'animal de la liste d'animaux de l'utilisateur
     const user = await User.findById(req.currentUserId);
-    user.animals.pull(animal._id);
+    user.animals.pull(deletedAnimal._id);
+    // trouver si l'animal avait des Meeting et les supprimer
+    const meetings = await Meeting.find({
+      $or: [{ animal1: deletedAnimal._id }, { animal2: deletedAnimal._id }],
+    });
+    meetings.forEach(async (meeting) => {
+      await Meeting.findByIdAndDelete(meeting._id);
+    });
+
     await user.save();
 
-    res.status(204).send(); // Réponse 204 pour la suppression réussie
+    return res.status(204).json({ message: "Animal supprimé avec succès" });
   } catch (err) {
-    next(err);
+    return next(err);
   }
 });
 

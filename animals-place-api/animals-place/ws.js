@@ -66,11 +66,33 @@ export function sendMessageToConnectedClient(client, message) {
     try {
       client.send(JSON.stringify(message));
     } catch (error) {
-      console.error("Error sending message:", error);
+      return debug("Invalid JSON message received from client");
     }
   }
 
   console.log("un message a été envoyé : ", message);
+}
+
+export function sendMessageMatched(clients, message) {
+  const client1 = clients[0];
+  const client2 = clients[1];
+
+  [client1, client2].forEach((client) => {
+    if (client && client.readyState === client.OPEN) {
+      try {
+        client.send(JSON.stringify(message));
+        console.log("Un message a été envoyé : ", message);
+      } catch (error) {
+        console.error("Error sending message to client with ID");
+      }
+    } else {
+      console.error(
+        "Client with ID",
+        client._socket.remoteAddress,
+        "is not connected or does not exist."
+      );
+    }
+  });
 }
 
 function onMessageReceived(ws, message) {

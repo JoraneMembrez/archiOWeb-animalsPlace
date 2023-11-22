@@ -73,8 +73,7 @@ describe("GET /users", function () {
       "registrationDate",
       "animals",
       "role",
-      "geolocation_lon",
-      "geolocation_lat",
+      "location",
       "__v",
     ]);
 
@@ -90,8 +89,7 @@ describe("GET /users", function () {
       "registrationDate",
       "animals",
       "role",
-      "geolocation_lon",
-      "geolocation_lat",
+      "location",
       "__v",
     ]);
   });

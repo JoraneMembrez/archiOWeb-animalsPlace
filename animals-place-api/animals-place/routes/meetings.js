@@ -2,10 +2,14 @@ import express from "express";
 import User from "../models/user.js";
 import Animal from "../models/animal.js";
 import Meeting from "../models/meeting.js";
-import { authenticate } from "./auth.js";
+import { authenticate, authorize } from "./auth.js";
 import animal from "../models/animal.js";
 import mongoose from "mongoose";
-import { broadcastMessage, sendMessageToConnectedClient } from "../ws.js";
+import {
+  broadcastMessage,
+  sendMessageMatched,
+  sendMessageToConnectedClient,
+} from "../ws.js";
 
 const router = express.Router();
 
@@ -69,15 +73,25 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
           location: "Lieu de la rencontre",
           description: "Description de la rencontre",
         });
+        const targetClient = [animal_user, animal_liked];
+        // ajouter dans les deux animaux sous matches l'id de l'autre animal
+        animal_user.matches.push(animal_liked);
+        animal_liked.matches.push(animal_user);
 
+        await animal_user.save();
+        await animal_liked.save();
+
+        const targetMessage = "Un nouveau Match !";
+        // il faut pousser dnas le tableau des matched de l'animal en question        // envoie un message aux 2 personnes ayant matché
+        /* sendMessageMatched(targetClient, targetMessage); */
         const savedMeeting = await newMeeting.save();
         res.status(200).json({ message: "Matched" });
-        broadcastMessage({ message: "Un nouveau match sur Animal Place !" });
       } else {
         const targetClient = animal_user;
         const targetMessage = "Un nouveau like !";
         // envoie un message a la personne qui a été liké
         sendMessageToConnectedClient(targetClient, targetMessage);
+        console.log("on passe au like ???");
         res.status(200).json({ message: "Liked" });
       }
     } else {
@@ -89,7 +103,7 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
 });
 
 // affiche la liste des rencontres
-router.get("/", authenticate, async (req, res, next) => {
+router.get("/", [authenticate, authorize("admin")], async (req, res, next) => {
   const userID = req.currentUserId;
 
   try {
