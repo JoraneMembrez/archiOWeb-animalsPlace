@@ -4,6 +4,7 @@ import User from "../models/user.js";
 import Meeting from "../models/meeting.js";
 import { authenticate } from "./auth.js";
 import { broadcastMessage } from "../ws.js";
+import swaggerJSDoc from "swagger-jsdoc";
 
 const router = express.Router();
 
@@ -17,11 +18,10 @@ router.get("/", authenticate, async function (req, res, next) {
     if (species_filter) {
       animals_db = animals_db.find({ species: species_filter });
     }
-
     // Récupérez l'ID de l'utilisateur connecté à partir des données d'authentification ou de la session
     const userID = req.currentUserId;
 
-    // requête de recherche pour récupérer tous les animaux dont le propriétaire n'est pas l'utilisateur actuel
+    // requête de recherche pour récupérer tous les animaux dont le propriétaire n'est pas l'utilisateur connecté 🙋
     const animals = await animals_db
       .find({
         owner: { $ne: userID },
@@ -32,7 +32,7 @@ router.get("/", authenticate, async function (req, res, next) {
 
     res.send(animals);
   } catch (err) {
-    next(err);
+    res.status(401).json();
   }
 });
 
@@ -56,10 +56,7 @@ router.get("/myAnimals", authenticate, async function (req, res, next) {
 // compte le nombre d'animal de chaque espèces qu'il y a sur la plateforme 🔢
 router.get("/count", authenticate, async function (req, res, next) {
   try {
-    // Récupérez l'ID de l'utilisateur connecté à partir des données d'authentification ou de la session
     const userID = req.currentUserId;
-
-    // On utilise la fonction d'aggregation de mongoDB
     const count = await Animal.aggregate([
       {
         $match: {
@@ -80,6 +77,7 @@ router.get("/count", authenticate, async function (req, res, next) {
   }
 });
 
+// création d'un nouvel animal 🐒
 router.post("/", authenticate, async (req, res, next) => {
   try {
     // Recherche de l'utilisateur par ID
@@ -88,8 +86,21 @@ router.post("/", authenticate, async (req, res, next) => {
 
     if (!user) {
       // L'utilisateur n'existe pas, renvoyez une erreur
-      const error = new Error("L'utilisateur n'existe pas");
+      const error = new Error(`L'utilisateur avec l'ID ${user} n'existe pas`);
       error.status = 404;
+      throw error;
+    }
+    // vérifier que le nom de l'animal n'est pas déjà utilisé dans ses autres animaux
+    const animals = await Animal.find({ owner: req.currentUserId });
+    const animalName = req.body.name;
+    const animalNameAlreadyUsed = animals.find(
+      (animal) => animal.name === animalName
+    );
+    if (animalNameAlreadyUsed) {
+      const error = new Error(
+        `Vous avez déjà un animal avec le nom ${animalName}, veuillez en choisir un autre`
+      );
+      error.status = 409;
       throw error;
     }
 
@@ -112,6 +123,7 @@ router.post("/", authenticate, async (req, res, next) => {
   }
 });
 
+// supprimer un animal 🐒
 router.delete("/:animalId", authenticate, async (req, res, next) => {
   try {
     const animalId = req.params.animalId;
@@ -121,9 +133,7 @@ router.delete("/:animalId", authenticate, async (req, res, next) => {
     });
 
     if (!deletedAnimal) {
-      const error = new Error(
-        "L'animal n'existe pas ou vous n'êtes pas autorisé à le supprimer"
-      );
+      const error = new Error(`L'animal avec l'ID ${animalId} n'existe pas`);
       error.status = 404;
       throw error;
     }
@@ -141,13 +151,15 @@ router.delete("/:animalId", authenticate, async (req, res, next) => {
 
     await user.save();
 
-    return res.status(204).json({ message: "Animal supprimé avec succès" });
+    return res.status(204).json({
+      message: `L'animal avec l'ID ${animalId} a été supprimé avec succès`,
+    });
   } catch (err) {
     return next(err);
   }
 });
 
-router.post("/:animalId", authenticate, async (req, res, next) => {
+router.patch("/:animalId", authenticate, async (req, res, next) => {
   try {
     const animalId = req.params.animalId;
     const updates = req.body; // Les données de mise à jour de l'animal
@@ -166,7 +178,7 @@ router.post("/:animalId", authenticate, async (req, res, next) => {
       return;
     }
 
-    // ce qu'on a le droit de modifier :
+    // ce qu'on a le droit de modifier 🚫 :
     const allowUpdates = {
       name: updates.name,
       profilePictureURL: updates.profilePictureURL,
@@ -200,14 +212,18 @@ router.post("/:animalId", authenticate, async (req, res, next) => {
 });
 
 // ajouter une image dans le tableau des images des animaux
-router.post("/addImg/:animalId", authenticate, async (req, res, next) => {
+router.patch("/addImg/:animalId", authenticate, async (req, res, next) => {
   try {
-    const newPicturesURL = req.body.picturesURL;
+    const fieldName = "picturesURL"; // pour que recoive bien le bon champ
+    const newPicturesURL = req.body[fieldName];
     const animalId = req.params.animalId;
     const animal = await Animal.findById(animalId);
-
     if (!animal) {
       res.status(404).json({ message: "Animal pas trouvé" });
+      return;
+    }
+    if (!newPicturesURL) {
+      res.status(400).json({ message: `Le champ ${fieldName} est requis` });
       return;
     }
 
@@ -239,13 +255,19 @@ router.post("/addImg/:animalId", authenticate, async (req, res, next) => {
 // supprimer une image dans le tableau des images des animaux
 router.post("/deleteImg/:animalId", authenticate, async (req, res, next) => {
   try {
-    const deletedPictureURL = req.body.picturesURL;
+    const fieldName = "picturesURL"; // pour que recoive bien le bon champ
+    const deletedPictureURL = req.body[fieldName];
     const animalId = req.params.animalId;
     const animal = await Animal.findById(animalId);
     const picturesURL = animal.picturesURL;
 
     if (!animal) {
       res.status(404).json({ message: "Animal pas trouvé" });
+      return;
+    }
+
+    if (!deletedPictureURL) {
+      res.status(400).json({ message: `Le champ ${fieldName} est requis` });
       return;
     }
 

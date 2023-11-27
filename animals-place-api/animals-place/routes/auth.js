@@ -49,12 +49,14 @@ export async function authenticate(req, res, next) {
   // Ensure the header is present.
   const authorization = req.get("Authorization");
   if (!authorization) {
-    return res.status(401).send("Authorization header is missing");
+    return res.status(401).send("L'en-tête d'autorisation est manquante");
   }
   // Check that the header has the correct format.
   const match = authorization.match(/^Bearer (.+)$/);
   if (!match) {
-    return res.status(401).send("Authorization header is not a bearer token");
+    return res
+      .status(401)
+      .send("L'en-tête d'autorisation n'est pas un jeton de support");
   }
   // Extract and verify the JWT.
   const token = match[1];
@@ -69,7 +71,7 @@ export async function authenticate(req, res, next) {
 
     next(); // Pass the ID of the authenticated user to the next middleware.
   } catch (err) {
-    return res.status(401).send("Your token is invalid or has expired");
+    return res.status(401).send("Votre jeton n'est pas valide ou a expiré");
   }
 }
 
@@ -89,7 +91,7 @@ export function authorize(requiredPermission) {
   };
 }
 
-router.post("/logout", (req, res) => {
+router.post("/logout", authenticate, (req, res) => {
   res.clearCookie("token");
-  res.sendStatus(200);
+  res.sendStatus(200).message("Vous êtes déconnecté");
 });

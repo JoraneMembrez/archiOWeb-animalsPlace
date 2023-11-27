@@ -6,16 +6,36 @@ import usersRouter from "./routes/users.js";
 import animalsRouter from "./routes/animals.js";
 import authRouter from "./routes/auth.js";
 import meetingsRouter from "./routes/meetings.js";
-import localisationRouter from "./routes/localisation.js";
-//import chatsRouter2 from "./routes/chats2.js";
 import mongoose from "mongoose";
-import debug from "debug";
 import * as config from "./config.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerJsdoc from "swagger-jsdoc";
+import fs from "fs";
+import yaml from "js-yaml";
 
 //server.listen(config.port);
+
 mongoose.connect(config.databaseUrl);
 
 const app = express();
+/*
+const swaggerDefinition = {
+  openapi: "3.0.0",
+  info: {
+    title: "Animals Place API",
+    version: "1.0.0",
+  }, // files containing annotations as above
+};
+const options = {
+  swaggerDefinition,
+  apis: ["./routes/*.js", "./models/*.js"],
+}; */
+
+const openApiDocument = yaml.load(fs.readFileSync("./openapi.yml"));
+
+// const swaggerSpec = swaggerJsdoc(options);
+//const openapiSpecification = swaggerJsdoc(options);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
 // définit sur quel port celui-ci va être lancé
 
@@ -28,8 +48,7 @@ app.use("/users", usersRouter);
 app.use("/animals", animalsRouter);
 app.use("/auth", authRouter);
 app.use("/meetings", meetingsRouter);
-app.use("/localisation", localisationRouter);
-//app.use("/chats2", chatsRouter2);
+
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));

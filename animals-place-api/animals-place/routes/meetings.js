@@ -3,15 +3,14 @@ import User from "../models/user.js";
 import Animal from "../models/animal.js";
 import Meeting from "../models/meeting.js";
 import { authenticate, authorize } from "./auth.js";
-import animal from "../models/animal.js";
 import mongoose from "mongoose";
-import { broadcastMessage, sendMessageToConnectedClient } from "../ws.js";
+import { sendMessageToConnectedClient } from "../ws.js";
 
 const router = express.Router();
 
 router.post("/like/:animalID", authenticate, async (req, res, next) => {
   const animalID_liked = req.params.animalID; // ID de l'animal aimé
-  const userID = req.body.userID; // ID de l'utilisateur
+  const userID = req.currentUserId; // ID de l'utilisateur
   const animalID_liking = req.body.animalUserID; // ID de l'animal qui like
 
   if (
@@ -100,8 +99,22 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
     next(error);
   }
 });
+/*
+router.post("/unlike/:animalID", authenticate, async (req, res, next) => {
+  const animalID_liked = req.params.animalID; // ID de l'animal aimé
+  const userID = req.body.userID; // ID de l'utilisateur
+  const animalID_liking = req.body.animalUserID; // ID de l'animal qui like
 
-// affiche la liste des rencontres
+  if (
+    !mongoose.Types.ObjectId.isValid(animalID_liked) ||
+    !mongoose.Types.ObjectId.isValid(userID) ||
+    !mongoose.Types.ObjectId.isValid(animalID_liking)
+  ) {
+    res.status(400).json({ message: "Invalid ID format" });
+    return;
+  } */
+
+// affiche la liste des rencontres qu'uniquement un admin peut voir
 router.get("/", [authenticate, authorize("admin")], async (req, res, next) => {
   const userID = req.currentUserId;
 
@@ -116,45 +129,77 @@ router.get("/", [authenticate, authorize("admin")], async (req, res, next) => {
   }
 });
 
-// afficher le nombre de rencontre d'un utilisateur
-// A VERIFIER
+// afficher le nombre de rencontre d'un utilisateur 🤝
 router.get("/count", authenticate, async (req, res, next) => {
-  const userID = req.currentUserId;
-
   try {
-    let total = await Meeting.aggregate([
-      {
-        $match: {
-          owner: userID,
-        },
-      },
-      {
-        $count: "total",
-      },
-    ]);
-    console.log(total);
-    res.status(200).json(total);
+    const userID = req.currentUserId;
+
+    // recherche les match dans le model des animaux du user
+    const animals = await Animal.find({ owner: userID }).populate("matches");
+    console.log(animals);
+    // compte le nombre de match obtenu
+    let count = 0;
+    animals.forEach((animal) => {
+      count += animal.matches.length;
+    });
+    res.status(200).json(`Vous avez acutellement : ${count}  matchs`);
   } catch (error) {
     next(error);
   }
 });
 
-// supprimer une rencontre
-router.delete("/:meetingID", authenticate, async (req, res, next) => {
-  const meetingID = req.params.meetingID;
-
+// afficher les rencontres d'un utilisateur 🤝
+router.get("/userMeetings", authenticate, async (req, res, next) => {
   try {
-    const deletedMeeting = await Meeting.deleteOne({ _id: meetingID });
+    const userID = req.currentUserId;
 
-    if (deletedMeeting.deletedCount === 1) {
-      res.status(200).json({ message: "Meeting deleted" });
-    } else {
-      res.status(404).json({ message: "Meeting not found" });
-    }
-    console.log(deletedMeeting);
+    const meetings = await Meeting.find({ owner: userID }).populate(
+      "animal1 animal2"
+    );
+
+    res.status(200).json(meetings);
   } catch (error) {
-    // Gérer les erreurs ici
-    res.status(500).json({ error: "Internal Server Error" });
+    next(error);
+  }
+});
+
+//supprimer une rencontre
+router.delete("/:meetingID", authenticate, async (req, res, next) => {
+  try {
+    const meetingID = req.params.meetingID;
+    const userID = req.currentUserId;
+
+    const deletedMeeting = await Meeting.findById(meetingID);
+    if (!deletedMeeting) {
+      res.status(404).json({ message: "Meeting not found" });
+      return;
+    }
+
+    const animal1 = await Animal.findById(deletedMeeting.animal1);
+    const animal2 = await Animal.findById(deletedMeeting.animal2);
+
+    const user1 = animal1.owner.toString();
+    const user2 = animal2.owner.toString();
+
+    const isAdmin = req.currentUserRole === "admin";
+    const isOwner = user1 === userID || user2 === userID;
+
+    if (!(isAdmin || isOwner)) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+
+    await Meeting.deleteOne({ _id: deletedMeeting });
+
+    const deletedMeetingId = new ObjectId(deletedMeeting._id);
+
+    animal1.matches.pull(deletedMeetingId);
+    animal2.matches.pull(deletedMeetingId);
+    await animal1.save();
+    await animal2.save();
+    res.status(200).json({ message: "Meeting deleted" });
+  } catch (error) {
+    next(error);
   }
 });
 

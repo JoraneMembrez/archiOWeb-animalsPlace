@@ -1,0 +1,859 @@
+openapi: 3.1.0
+info:
+  title: Animals Place API
+  description: API for an Animal Place Meeting app develloped in the ArchiOWeb course
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: jorane.membrez@heig-vd.ch
+  version: 2.0.0
+  externalDocs:
+    description: Link to the Github repository
+    url: https://github.com/JoraneMembrez/archiOWeb-animalsPlace
+servers:
+  - url: http://localhost:8000
+    description: Local server
+  - url: https://archioweb-animalsplace.onrender.com/
+    description: Heroku server
+tags : 
+  - name: users
+  - name: animals
+  - name: meetings
+  - name: auth
+
+paths:
+  /users :
+     get :
+      tags:
+       - users
+      summary: Retourne tous les utilisateurs de l'application de manière paginée
+      description: Il faut être admin pour pouvoir exécuter cette requête
+      parameters:
+        - name: page
+          in: query
+          description: Numéro de page à récupérer
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            default: 10
+          description: Le nombre d'utilisateur par page
+      responses: 
+        "200":
+          description: Successful response
+          content:
+            application/json:
+             schema:
+               type: object
+               properties :
+                 users :
+                  type: array
+                  items :
+                    $ref: "#/components/schemas/UserBasic"
+               currentPage :
+                 type: integer
+               totalPages:
+                  type: integer
+        "403":
+          description : You are not authorized to access this resource
+          content:
+              text/plain:
+                example: Forbidden
+      security:
+        - bearerAuth: []
+     post :
+        tags:
+          - users
+        summary: Création d'un nouvel utilisateur
+        requestBody:
+          required : true
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPost"
+        responses:
+          "201":
+            description: Création réussie
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/UserBasic"
+          "409" :
+            description : L'utilisateur existe déjà
+            content:
+              text/plain:
+                example: La ressource avec l'email john.doe@gmail.com existe déjà
+          "400" :
+            description : La requête n'est pas valide
+            content:
+              text/plain:
+                example: Le mot de passe, l'email et le prénom sont obligatoires
+              
+  /users/{userID} :
+    get :
+      tags:
+       - users
+      summary: Obtenir un utilisateur par son ID, vous devez être administrateur ou l'utilisateur lui-même pour exécuter cette requête.
+      parameters:
+        - in: path
+          name: userID
+          schema:
+           type: string
+           required: true
+           example: 6375ef6d1d458a3858c3453e
+          description: L'ID de l'utilisateur qu'on souhaite obtenir
+      responses:
+        "200":
+           description: Opération réussie
+           content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/UserGet"
+     
+        "404" :
+          description : L'utilisateur n'a pas été trouvé
+          content:
+              text/plain:
+                example: L'utilisateur avec l'ID 6375ef6d1d458a3858c3453e n'a pas été trouvé
+        "403" :
+          description : Vous n'êtes pas autorisé à accéder à cette ressource
+          content:
+              text/plain:
+                example: Interdit
+    patch:
+          tags:
+            - users
+          summary: Mise à jour de l'utilisateur par ID
+          description: Mettre à jour un utilisateur par son ID. Les utilisateurs administrateurs peuvent mettre à jour n'importe quel utilisateur ; les utilisateurs ne peuvent mettre à jour que leur propre profil.
+          parameters:
+          - name: userID
+            in: path
+            example: 6375ef6d1d458a3858c3453e
+            description: L'ID de l'utilisateur à mettre à jour
+            required: true
+            schema:
+              type: string
+          requestBody:
+            required: true
+            content:
+             application/json:
+              schema:
+                $ref: '#/components/schemas/UserBasic'
+          responses:
+            '200':
+              description: Utilisateur mis à jour correctement
+              content:
+                application/json:
+                 schema:
+                   $ref: '#/components/schemas/UserBasic'
+            '400':
+              description: L'utilisateur n'a pas été trouvé ou la requête n'est pas valide
+              content:
+                text/plain:
+                  example: L'utilisateur avec l'ID 6375ef6d1d458a3858c3453e n'exite pas
+            '403':
+              description: Vous n'êtes pas autorisé à accéder à cette ressource
+              content:
+                text/plain:
+                  example: Forbidden
+            '401' :
+              description : Vous n'êtes pas autorisé à accéder à cette ressource
+              content:
+                text/plain:
+                  example: Unauthorized
+          
+    delete:
+        tags :
+          - users
+        summary: Supprime un utilisateur par son ID
+        description: Supprimer un utilisateur par son ID. Les administrateurs peuvent supprimer n'importe quel utilisateur ; les utilisateurs ne peuvent supprimer que leur propre profil.
+        parameters:
+          - name: userID
+            in: path
+            description: L'ID de l'utilisateur a supprimer
+            example: 6375ef6d1d458a3858c3453e
+            required: true
+            schema:
+              type: string
+        responses:
+          '200':
+            description: Utilisateur supprimée avec succès
+            content : 
+              text/plain:
+                example: Utilisateur avec l'ID 6375ef6d1d458a3858c3453e supprimé avec succès
+          '404':
+            description: L'utilisateur n'a pas été trouvé
+            content:
+              text/plain:
+                example: L'utilisateur avec l'ID 6375ef6d1d458a3858c3453e n'existe pas
+          '403':
+            description: Vous n'êtes pas autorisé à accéder à cette ressource
+            content:
+              text/plain:
+                example: Forbidden
+          '401' :
+            description : Vous n'êtes pas autorisé à accéder à cette ressource
+            content:
+              text/plain:
+                example: Unauthorized
+            
+    
+  /users/matchedUsers : 
+    get :
+        tags:
+          - users
+        summary: Obtenir tous les utilisateurs qui ont matché avec l'utilisateur logé
+        responses:
+          "200":
+            description: Opération réussie
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/UserBasic"
+          "401":
+            description : "Vous n'êtes pas autorisé à accéder à cette ressource"
+            content :
+              text/plain:
+                example: Unauthorized       
+        security:
+          - bearerAuth: []
+            
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Login
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              $ref: "#/components/schemas/Login"
+      responses:
+        "200":
+          description: Opération réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  {
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c,
+                  }
+        "400":
+          description: ID invalide
+        "401":
+          $ref: "#/components/responses/401Unauthorized"
+      security:
+        - bearerAuth: []
+          
+  /auth/logout: 
+    post:
+      tags:
+        - auth
+      summary: Logout
+      responses:
+        "200":
+          description: Opération réussie
+          content:
+            text/plain:
+                example: Vous êtes déconnecté
+                  
+        "401":
+          $ref: "#/components/responses/401Unauthorized"
+      security:
+        - bearerAuth: []
+
+  /animals :
+    get :
+      tags:
+       - animals
+      summary: Obtenir tous les animaux qui n'appartiennent pas à l'utilisateur actuel
+      description: Vous devez être authentifié pour exécuter cette requête.
+      responses: 
+        "200":
+          description: Réponse réussie
+          content:
+            application/json:
+             schema:
+               type: object
+               properties :
+                 animals :
+                  type: array
+                  items :
+                    $ref: "#/components/schemas/Animal"
+               currentPage :
+                 type: integer
+               totalPages:
+                  type: integer
+        "401":
+          description: L'en-tête d'autorisation est manquante
+          content:
+              text/plain:
+                example: L'en-tête d'autorisation est manquante
+      security:
+        - bearerAuth: []
+    post :
+        tags:
+          - animals
+        summary: Création d'un nouvel animal, vous devez être authentifié pour exécuter cette requête
+        description : Création d'un nouvel animal
+        requestBody:
+          required : true
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Animal"
+        responses:
+          "201":
+            description: Animal créé avec succès
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Animal"
+          "409" :
+            description : L'animal existe déjà
+            content:
+              text/plain:
+                example: Vous avez déjà un animal avec le nom Bobby, veuillez en choisir un autre
+          "404" :
+            description : L'utilisateur n'a pas été trouvé
+            content:
+              text/plain:
+                example: L'utilisateur avec l'ID 6375ef6d1d458a3858c3453e n'existe pas
+        security:
+          - bearerAuth: []
+  /animals/myAnimals :
+      get :
+        tags:
+          - animals
+        summary: Obtenir tous les animaux appartenant à l'utilisateur actuel
+        description: Vous devez être authentifié pour exécuter cette requête.
+        responses:
+          "200":
+            description: opération réussie
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Animal"
+          "401":
+            description: L'en-tête d'autorisation est manquante
+            content :
+              text/plain :
+                example : L'en-tête d'autorisation est manquante
+        security:
+          - bearerAuth: []
+  /animals/{animalID} :
+    delete : 
+        tags:
+          - animals
+        summary: Supprimer un animal par son ID
+        description: Vous devez être authentifié pour exécuter cette requête et être le propriétaire de l'animal 
+        parameters:
+          - in: path
+            name: animalID
+            schema:
+              type: string
+              required: true
+            description: L'ID de l'animal à supprimer
+        responses:
+          "200":
+            description: Opération réussie
+            content:
+              plain/text:
+                example : L'animal avec l'ID 6375ef6d1d458a3858c3453e a été supprimé avec succès
+                schema:
+                  $ref: "#/components/schemas/Animal"
+          "401":
+            $ref: "#/components/responses/401Unauthorized"
+        
+          "404":
+            description : L'animal n'a pas été trouvé
+            content : 
+              plain/text:
+                example : "L'animal avec l'ID 6375ef6d1d458a3858c3453e n'existe pas"
+        security:
+          - bearerAuth: []
+    patch :
+        tags:
+          - animals
+        summary: Update an animal by its ID
+        description: Update an animal by its ID
+        parameters:
+          - in: path
+            name: animalID
+            schema:
+              type: string
+              required: true
+            description: The ID of the animal to update
+        requestBody:
+          required : true
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Animal"
+        responses:
+          "200":
+            description: successful operation
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Animal"
+          "401":
+            $ref: "#/components/responses/401Unauthorized"
+          "403":
+            $ref: "#/components/responses/403Forbidden"
+          "404":
+            $ref: "#/components/responses/404NotFound"
+        security:
+          - bearerAuth: []
+  /animals/addImg/{animalID} :
+    patch :
+        tags:
+          - animals
+        summary: Add an image to an animal by its ID
+        description: Add an image to an animal by its ID
+        parameters:
+          - in: path
+            name: animalID
+            schema:
+              type: string
+              required: true
+            description: The ID of the animal to update
+        requestBody:
+          required : true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pictureUrl:
+                    type: string
+                    example: https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.woopets.fr%2Fchien%2F
+        responses:
+          "200":
+            description: successful operation
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Animal"
+          "401":
+            $ref: "#/components/responses/401Unauthorized"
+          "404":
+            $ref: "#/components/responses/404NotFound"
+          "400" :
+            $ref: "#/components/responses/400BadRequest"
+        security:
+          - bearerAuth: []
+
+    delete :
+        tags:
+          - animals
+        summary: Delete an image to an animal by its ID
+        description: Delete an image to an animal by its ID
+        parameters:
+          - in: path
+            name: animalID
+            schema:
+              type: string
+              required: true
+            description: The ID of the animal to update
+        requestBody:
+          required : true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pictureUrl:
+                    type: string
+                    example: https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.woopets.fr%2Fchien%2F
+        responses:
+          "200":
+            description: successful operation
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Animal"
+          "401":
+            $ref: "#/components/responses/401Unauthorized"
+          "404":
+            $ref: "#/components/responses/404NotFound"
+          "400" :
+            $ref: "#/components/responses/400BadRequest"
+        security:
+          - bearerAuth: []
+  /animals/count :
+    get :
+      tags:
+       - animals
+      summary: Get the number of species of animals that is on the app
+      description: You must be authenticate to execute this query
+      responses: 
+        "200":
+          description: Successful response
+          content:
+            application/json:
+             schema:
+               type: object
+               properties :
+                 count :
+                  type: integer
+        "401":
+          $ref: "#/components/responses/401Unauthorized"
+      security:
+        - bearerAuth: []
+        
+  /meetings/like/{animalID} :
+    post :
+      tags:
+       - meetings
+      summary: Like an animal by its ID
+      description: You must be authenticate to execute this query
+      parameters:
+        - in: path
+          name: animalID
+          schema:
+            type: string
+            required: true
+          description: The ID of the animal to like
+      requestBody :
+        required : true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                animalUserID:
+                  type: string
+                  example: 6375ef6d1d458a3858c3453e
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+             schema:
+               type: object
+               properties :
+                 animal :
+                  $ref: "#/components/schemas/Animal"
+        "401":
+          $ref: "#/components/responses/401Unauthorized"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "400" :
+          $ref: "#/components/responses/400BadRequest"
+      security:
+        - bearerAuth: []
+  /meetings :
+    get :
+      tags:
+       - meetings
+      summary: Get all meetings that belong to the current user
+      description: You must be authenticate to execute this query or be an admin
+      responses: 
+        "200":
+          description: Successful response
+          content:
+            application/json:
+             schema:
+               type: object
+               properties :
+                 meetings :
+                  type: array
+                  items :
+                    $ref: "#/components/schemas/Meeting"
+               currentPage :
+                 type: integer
+               totalPages:
+                  type: integer
+        "401":
+          $ref: "#/components/responses/401Unauthorized"
+      security:
+        - bearerAuth: []
+  meetings/count :
+    get :
+      tags:
+       - meetings
+      summary: Get the number of meetings that one user has
+      description: You must be authenticate to execute this query
+      responses: 
+        "200":
+          description: Successful response
+          content:
+            application/json:
+             schema:
+               type: object
+               properties :
+                 count :
+                  type: integer
+        "401":
+          $ref: "#/components/responses/401Unauthorized"
+      security:
+        - bearerAuth: []
+    
+  /meetings/{meetingID} :
+    delete : 
+        tags:
+          - meetings
+        summary: Delete a meeting by its ID
+        description: You must be authenticate to execute this query or be an admin
+        parameters:
+          - in: path
+            name: meetingID
+            schema:
+              type: string
+              required: true
+              example: 6375ef6d1d458a3858c3453e
+            description: The ID of the meeting to delete
+        responses:
+          "200":
+            description: Meeting deleted
+            content:
+              application/json:
+                example: { "message": "Meeting deleted" }
+
+          "403":   
+           description : You are not authorized to access this resource
+           content:
+              application/json:
+                example: { "message": "Forbidden" }
+          
+          "404":
+            description : Not found
+            content:
+              application/json:
+                example: { "message": "Meeting not found" }
+        security:
+          - bearerAuth: []
+  
+ 
+
+components:
+  responses:
+    401Unauthorized:
+      description: L'en-tête d'autorisation est manquante
+    403Forbidden:
+      description: Vous n'êtes pas autorisé à accéder à cette ressource
+    404NotFound:
+      description: La ressource recherchée n'existe pas
+    406NotAcceptable:
+      description: La demande n'est pas acceptable
+    409Conflict:
+      description: The resource already exists
+    201Created:
+      description: La ressource existe déjà
+    400BadRequest:
+      description: La demande n'est pas valide
+    200OK:
+      description: La demande a abouti
+  Login:
+      type: object
+      properties:
+        email:
+          type: string
+          example: john.doe@gmail.com
+        password:
+          type: string
+          example: 1234
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT # optional, for documentation purposes only
+  schemas :
+    UserBasic:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 6375ef6d1d458a3858c3453e
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        email:
+          type: string
+          example: john.doe@gmail.com
+        password:
+          type: string
+          example: "1234"
+        registrationDate:
+          type: string
+          format: date-time
+          example: 2021-04-13T14:30:00.000Z
+        address :
+          type: string
+          example: "Rue de la gare 12, 2800 Delémont"
+        animals :
+          type: Object
+          $ref : "#/components/schemas/Animal"
+        role:
+          type: string
+          enum:
+           - user
+           - admin
+          default: user
+        location:
+          type:
+            type: string
+            required: true
+            enum:
+              - Point
+            default: Point
+          coordinates:
+            type:
+             - number
+            required: true
+            validate:
+              validator: validateGeoJsonCoordinates
+              message: "{VALUE} is not a valid longitude/latitude(/altitude) coordinates array"
+          default:
+            - 6.647778558579233
+            - 46.78060279685718 
+    UserPost :
+      allOf :
+        - type : object
+          properties :
+            firstName: 
+                type : string
+                example : John
+            email :
+              type : string
+              example : john.doe@gmail.com
+            password :
+              type : string
+              example : 1234
+          
+    UserGet :
+      allOf :
+        - $ref : "#/components/schemas/UserBasic"
+        - type : object
+          properties :
+            _id :
+              type : string
+              example : 6375ef6d1d458a3858c3453e
+            registrationDate :
+              type : string
+              format : date-time
+              example : 2021-04-13T14:30:00.000Z
+    Animal :
+      allOf :
+        - type : object
+          properties :
+            _id:
+              type: string
+              example: 6375ef6d1d458a3858c3453e
+            name : 
+              type : string
+              example : "Bobby"
+            species :
+              enum : 
+                - chien
+                - chat
+                - lapin
+                - furet
+                - hamster
+                - oiseau
+                - tortue
+                - poisson
+                - souris
+                - camélémon
+                - serpent
+                - araigné
+                - autre
+              example : chien
+            age :
+              type : integer
+              example: 5
+            gender :
+              enum :
+                - Male
+                - Female
+                - Other
+            profilePictureUrl :
+              type : string
+            description :
+                type : string
+                example : "Bobby like painting and eating"
+            picturesUrl :
+                type : array
+                items :
+                  type : string
+                example : [https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.woopets.fr%2Fchien%2F]
+            location :
+                type : String,
+                example : "Rue de la gare 12, 2800 Delémont"
+            favoriteActivites :
+                type : array
+                items :
+                  type : string
+                example : ["painting", "eating"]
+            matches :
+                type : array
+                items :
+                  $ref : "#/components/schemas/Animal"
+                example : ["6375ef6d1d458a3858c3453e"]
+            createdDate :
+                type : string
+                format : date-time
+                example : 2021-04-13T14:30:00.000Z
+            owner :
+                $ref : "#/components/schemas/UserBasic"
+                example : "6375ef6d1d458a3858c3453e"
+            animal_liked :
+                type : array
+                items :
+                  $ref : "#/components/schemas/Animal"
+                example : ["6375ef6d1d458a3858c3453e"]
+    Meeting :
+      allOf :
+        - type : object
+          properties :
+            _id:
+              type: string
+              example: 6375ef6d1d458a3858c3453e
+            owner :
+              $ref : "#/components/schemas/UserBasic"
+              example : "6375ef6d1d458a3858c3453e"
+            animal1 :
+              $ref : "#/components/schemas/Animal"
+              example : "6375ef6d1d458a3858c3453e"
+            animal2 :
+              $ref : "#/components/schemas/Animal"
+              example : "6375ef6d1d458a3858c3457e"
+            date :
+              type : string
+              format : date-time
+              example : 2021-04-13T14:30:00.000Z
+            location :
+              type : string
+              example : "Rue de la gare 12, 2800 Delémont"
+            description :
+              type : string
+              example : "La rencontre aura lieu à la gare de Delémont"
+            createdDate :
+              type : string
+              format : date-time
+              example : 2021-04-13T14:30:00.000Z
+    Login:
+      type: object
+      properties:
+        email:
+          type: string
+          example: john.doe@gmail.com
+        password:
+          type: string
+          example: 1234
+              
+
+        
+          
+

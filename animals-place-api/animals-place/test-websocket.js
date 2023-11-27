@@ -5,6 +5,7 @@ const ws = new WebSocket("ws://localhost:8000");
 ws.on("open", function open() {
   console.log("Connected to WebSocket server");
 
+  // ID correspondant de l'user dans la base de donnée
   const userID = "655379f9f4da0d1eb4f841b8";
 
   ws.send(JSON.stringify({ type: "new_user", id: userID }));

@@ -28,6 +28,10 @@ const meetingSchema = new Schema({
   description: {
     type: String, // Description facultative de la rencontre
   },
+  createdDate: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 export default mongoose.model("Meeting", meetingSchema);

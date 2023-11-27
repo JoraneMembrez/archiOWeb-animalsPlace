@@ -55,15 +55,6 @@ const userSchema = new Schema({
       default: [6.647778558579233, 46.78060279685718], // par défaut les coordonées de l'HEIG :)
     },
   },
-
-  /* geolocation_lon: {
-    type: Number,
-    default: 0,
-  },
-  geolocation_lat: {
-    type: Number,
-    default: 0,
-  },*/
 });
 
 // Create a geospatial index on the location property.

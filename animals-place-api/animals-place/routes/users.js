@@ -107,7 +107,9 @@ router.get("/:userID", authenticate, async (req, res, next) => {
     const userLog = await User.findById(authenticatedUserId);
 
     if (!user) {
-      res.status(404).json({ message: "User not found" });
+      res.status(404).json({
+        message: `L'utilisateur avec l'ID ${requestedUserId} n'a pas été trouvé`,
+      });
       return;
     }
 
@@ -119,20 +121,28 @@ router.get("/:userID", authenticate, async (req, res, next) => {
     if (isAdmin || isRequestedUser) {
       res.send(user);
     } else {
-      res.status(403).json({ message: "Forbidden" });
+      res.status(403).json({ message: "Interdit" });
     }
   } catch (err) {
     next(err);
   }
 });
 
-// lorsqu'on est un utilisateur on peut uniquement voir
-
 // Créer un utilisateur
 router.post("/", async (req, res, next) => {
   try {
     const plainPassword = req.body.password;
+    const email = req.body.email;
+    const firstName = req.body.firstName;
     const costFactor = 10;
+
+    if (!plainPassword || !email || !firstName) {
+      const error = new Error(
+        "Le mot de passe, l'email et le prénom sont obligatoires"
+      );
+      error.status = 400;
+      throw error;
+    }
 
     // Hachage du mot de passe
     const hashedPassword = await bcrypt.hash(plainPassword, costFactor);
@@ -142,8 +152,8 @@ router.post("/", async (req, res, next) => {
 
     if (existingUser) {
       // L'utilisateur existe déjà
-      const error = new Error("La ressource existe déjà");
-      error.status = 406;
+      const error = new Error(`La ressource avec l'email ${email} existe déjà`);
+      error.status = 409;
       throw error;
     } else {
       // Création d'un nouvel utilisateur
@@ -162,7 +172,7 @@ router.post("/", async (req, res, next) => {
 });
 
 // Modifier un utilisateur on peut tous les modifier si on est Admin ou étant un utilisateur on peut uniquement se modifier nous-même
-router.post(
+router.patch(
   "/:userID",
   [idValidation, authenticate],
   async (req, res, next) => {
@@ -179,7 +189,19 @@ router.post(
       const userLog = await User.findById(authenticatedUserID);
 
       if (!userToUpdate) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(400).json({
+          message: `L'utilisateur avec l'ID ${requestedUserID} n'existe pas`,
+        });
+      }
+
+      const isValidUpdate = Object.keys(updates).every((update) =>
+        User.schema.paths.hasOwnProperty(update)
+      );
+
+      if (!isValidUpdate) {
+        return res
+          .status(400)
+          .json({ message: "Champ(s) non valide(s) pour la mise à jour" });
       }
 
       if (userLog.role === "admin") {
@@ -202,7 +224,7 @@ router.post(
         const updatedUser = await userToUpdate.save();
         return res.status(200).json(updatedUser);
       } else {
-        return res.status(403).json({ message: "Forbidden" });
+        return res.status(403).json({ message: "Interdit" });
       }
     } catch (error) {
       next(error);
@@ -221,16 +243,22 @@ router.delete("/:userID", [idValidation, authenticate], async (req, res) => {
     const userToDelete = await User.findById(requestedUserID);
 
     if (!userToDelete) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: `L'utilisateur avec l'ID ${requestedUserID} n'existe pas`,
+      });
     }
     // vérification si l'utilisateur connecté est un administrateur
     if (user.role === "admin") {
       await User.deleteOne({ _id: requestedUserID });
-      return res.status(200).json({ message: "User deleted" });
+      return res.status(200).json({
+        message: `Utilisateur avec l'ID ${requestedUserID} supprimé avec succès`,
+      });
     } else if (authenticatedUserID === requestedUserID) {
       // Si l'utilisateur connecté est celui demandant la suppression
       await User.deleteOne({ _id: requestedUserID });
-      return res.status(200).json({ message: "User deleted" });
+      return res.status(200).json({
+        message: `Utilisateur avec l'ID ${requestedUserID} supprimé avec succès`,
+      });
     } else {
       return res.status(403).json({ message: "Forbidden" });
     }
