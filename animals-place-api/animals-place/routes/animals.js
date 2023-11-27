@@ -167,7 +167,9 @@ router.patch("/:animalId", authenticate, async (req, res, next) => {
     const animal = await Animal.findById(animalId);
 
     if (!animal) {
-      res.status(404).json({ message: "Animal pas trouvé" });
+      res
+        .status(404)
+        .json({ message: `Animal avec l'ID ${animalId} pas trouvé` });
       return;
     }
 
@@ -219,7 +221,9 @@ router.patch("/addImg/:animalId", authenticate, async (req, res, next) => {
     const animalId = req.params.animalId;
     const animal = await Animal.findById(animalId);
     if (!animal) {
-      res.status(404).json({ message: "Animal pas trouvé" });
+      res
+        .status(404)
+        .json({ message: `Animal avec l'ID ${animalId} n'existe pas` });
       return;
     }
     if (!newPicturesURL) {
@@ -262,7 +266,9 @@ router.post("/deleteImg/:animalId", authenticate, async (req, res, next) => {
     const picturesURL = animal.picturesURL;
 
     if (!animal) {
-      res.status(404).json({ message: "Animal pas trouvé" });
+      res
+        .status(404)
+        .json({ message: `Animal avec l'ID ${animalId} n'existe pas` });
       return;
     }
 

@@ -18,7 +18,7 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
     !mongoose.Types.ObjectId.isValid(userID) ||
     !mongoose.Types.ObjectId.isValid(animalID_liking)
   ) {
-    res.status(400).json({ message: "Invalid ID format" });
+    res.status(400).json({ message: "ID non valide" });
     return;
   }
 
@@ -27,12 +27,16 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
     const animal_liking = await Animal.findById(animalID_liking);
 
     if (!animal_liked) {
-      res.status(404).json({ message: "Animal not found" });
+      res.status(404).json({
+        message: `L'animal avec l'ID ${animalID_liked} que vous souhaitez aimer n'existe pas`,
+      });
       return;
     }
 
     if (!animal_liking) {
-      res.status(404).json({ message: "Animal user not found" });
+      res.status(404).json({
+        message: `Votre animal avec l'ID ${animalID_liking} n'existe pas`,
+      });
       return;
     }
 
@@ -83,17 +87,16 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
         sendMessageToConnectedClient(client1, targetMessage);
         sendMessageToConnectedClient(client2, targetMessage);
         const savedMeeting = await newMeeting.save();
-        res.status(200).json({ message: "Matched" });
+        res.status(200).json({ message: "Match !" });
       } else {
         const targetClient = animal_liked.owner._id.toString();
         const targetMessage = "Un nouveau like !";
         // envoie un message a la personne qui a été liké
         sendMessageToConnectedClient(targetClient, targetMessage);
-        console.log("on passe au like ???");
-        res.status(200).json({ message: "Liked" });
+        res.status(200).json({ message: "Vous avez aimé un animal" });
       }
     } else {
-      res.status(200).json({ message: "Already liked" });
+      res.status(200).json({ message: "L'animal est déjà aimé" });
     }
   } catch (error) {
     next(error);
