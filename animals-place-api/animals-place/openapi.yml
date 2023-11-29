@@ -280,6 +280,13 @@ paths:
        - animals
       summary: Obtenir tous les animaux qui n'appartiennent pas à l'utilisateur actuel
       description: Vous devez être authentifié pour exécuter cette requête.
+      parameters:
+        - name : species
+          in : query
+          schema :
+            type : string
+            example : chien
+          description : Le type d'animal qu'on souhaite obtenir
       responses: 
         "200":
           description: Réponse réussie
@@ -526,18 +533,15 @@ paths:
     get :
       tags:
        - animals
-      summary: Get the number of species of animals that is on the app
-      description: You must be authenticate to execute this query
+      summary: Obtenir le nombre d'espèces d'animaux présentes sur l'application
+      description: Vous devez être authentifié pour exécuter cette requête
       responses: 
         "200":
-          description: Successful response
+          description: Requête réussi
           content:
             application/json:
-             schema:
-               type: object
-               properties :
-                 count :
-                  type: integer
+                  example : {"_id": "Chat", "count": 5}
+
         "401":
           $ref: "#/components/responses/401Unauthorized"
       security:

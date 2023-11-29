@@ -71,9 +71,11 @@ export function sendMessageToConnectedClient(userID, message) {
       console.error("Error sending message to client with ID");
     }
   } else {
-    console.error(
-      "Client with ID " + userID + " is not connected or does not exist."
-    );
+    // si varaible env est test on ne logue pas
+    if (process.env.NODE_ENV !== "test")
+      console.error(
+        "Client with ID " + userID + " is not connected or does not exist."
+      );
   }
 }
 

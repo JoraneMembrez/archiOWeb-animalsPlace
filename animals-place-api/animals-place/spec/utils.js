@@ -13,6 +13,6 @@ export const cleanUpDatabase = async function () {
 export function generateValidJwt(user) {
   // Generate a valid JWT which expires in 7 days.
   const exp = (new Date().getTime() + 7 * 24 * 3600 * 1000) / 1000;
-  const claims = { sub: user._id.toString(), exp: exp };
+  const claims = { sub: user._id.toString(), exp: exp, scope: user.role };
   return signJwt(claims, jwtSecret);
 }

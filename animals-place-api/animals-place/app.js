@@ -18,18 +18,6 @@ import yaml from "js-yaml";
 mongoose.connect(config.databaseUrl);
 
 const app = express();
-/*
-const swaggerDefinition = {
-  openapi: "3.0.0",
-  info: {
-    title: "Animals Place API",
-    version: "1.0.0",
-  }, // files containing annotations as above
-};
-const options = {
-  swaggerDefinition,
-  apis: ["./routes/*.js", "./models/*.js"],
-}; */
 
 const openApiDocument = yaml.load(fs.readFileSync("./openapi.yml"));
 

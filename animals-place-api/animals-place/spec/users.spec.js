@@ -2,7 +2,6 @@ import supertest from "supertest";
 import app from "../app.js";
 import User from "../models/user.js";
 import mongoose from "mongoose";
-import auth from "../routes/auth.js";
 import { cleanUpDatabase, generateValidJwt } from "./utils.js";
 
 beforeEach(cleanUpDatabase);
@@ -32,12 +31,12 @@ describe("POST /users", function () {
   });
 });
 
+//----------------------------------------------
+
 describe("GET /users", function () {
   let johnDoe;
   let janeDoe;
-
   beforeEach(async function () {
-    // Create 2 users before retrieving the list.
     [johnDoe, janeDoe] = await Promise.all([
       User.create({
         firstName: "John",
@@ -55,53 +54,26 @@ describe("GET /users", function () {
     ]);
   });
 
-  test("should retrieve the list of users as an admin", async function () {
+  test("should retrieve paginated list of users for an admin", async function () {
     const validAdminToken = await generateValidJwt(johnDoe);
 
     const res = await supertest(app)
       .get("/users")
+      .query({ page: 1, pageSize: 5 })
       .set("Authorization", `Bearer ${validAdminToken}`)
       .expect(200)
       .expect("Content-Type", /json/);
-    expect(res.body).toHaveLength(2);
-    expect(res.body).toBeArray();
-    expect(res.body[0]).toBeObject();
-    expect(res.body[0]._id).toEqual(johnDoe.id);
-    expect(res.body[0].firstName).toEqual("John");
-    expect(res.body[0].lastName).toEqual("Doe");
-    expect(res.body[0]).toContainAllKeys([
-      "_id",
-      "firstName",
-      "lastName",
-      "email",
-      "password",
-      "registrationDate",
-      "address",
-      "animals",
-      "role",
-      "location",
-      "__v",
-    ]);
+    expect(res.body).toHaveProperty("users");
+    expect(res.body).toHaveProperty("currentPage", 1);
+    expect(res.body.users[0]).toHaveProperty("_id", johnDoe.id);
+    expect(res.body.users[0].firstName).toEqual("John");
+    expect(res.body.users[0].lastName).toEqual("Doe");
 
-    expect(res.body[1]).toBeObject();
-    expect(res.body[1]._id).toEqual(janeDoe.id);
-    expect(res.body[1].firstName).toEqual("Jane");
-    expect(res.body[1].lastName).toEqual("Doe");
-    expect(res.body[1]).toContainAllKeys([
-      "_id",
-      "firstName",
-      "lastName",
-      "email",
-      "password",
-      "registrationDate",
-      "address",
-      "animals",
-      "role",
-      "location",
-      "__v",
-    ]);
+    expect(res.body.users[1]).toHaveProperty("_id", janeDoe.id);
+    expect(res.body.users[1].firstName).toEqual("Jane");
+    expect(res.body.users[1].lastName).toEqual("Doe");
   });
-  afterAll(async () => {
-    await mongoose.disconnect();
-  });
+});
+afterAll(async () => {
+  await mongoose.disconnect();
 });

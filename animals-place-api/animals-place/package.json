@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node ./bin/start",
     "dev": "nodemon",
-    "test": "cross-env DATABASE_URL=mongodb://127.0.0.1/animals-place-test node --experimental-vm-modules node_modules/jest/bin/jest --coverage --runInBand"
+    "test": "cross-env NODE_ENV=test DATABASE_URL=mongodb://127.0.0.1/animals-place-test node --experimental-vm-modules node_modules/jest/bin/jest --coverage --runInBand"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
