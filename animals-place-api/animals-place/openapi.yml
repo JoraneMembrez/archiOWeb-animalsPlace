@@ -243,10 +243,16 @@ paths:
                   {
                     token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c,
                   }
-        "400":
-          description: ID invalide
+       
         "401":
-          $ref: "#/components/responses/401Unauthorized"
+          description : L'email ou le mot de passe est incorrecte
+          content :
+            text/plain:               
+              examples:
+                password:
+                  value: Mot de passe incorrect
+                email : 
+                  value : L'email john@outlook.com n'est pas correcte
       security:
         - bearerAuth: []
           
@@ -263,6 +269,7 @@ paths:
                 example: Vous êtes déconnecté
                   
         "401":
+          description : La personne n'est pas connecté
           $ref: "#/components/responses/401Unauthorized"
       security:
         - bearerAuth: []
@@ -627,8 +634,8 @@ paths:
     delete : 
         tags:
           - meetings
-        summary: Delete a meeting by its ID
-        description: You must be authenticate to execute this query or be an admin
+        summary: Supprimer une rencontre par son identifiant
+        description: Vous devez être authentifié pour exécuter cette requête ou être un administrateur.
         parameters:
           - in: path
             name: meetingID
@@ -636,25 +643,22 @@ paths:
               type: string
               required: true
               example: 6375ef6d1d458a3858c3453e
-            description: The ID of the meeting to delete
+            description: L'ID de la rencontre à supprimer
         responses:
           "200":
             description: Meeting deleted
             content:
               application/json:
-                example: { "message": "Meeting deleted" }
+                example: { "message": "Rencontre supprimée" }
 
           "403":   
-           description : You are not authorized to access this resource
-           content:
-              application/json:
-                example: { "message": "Forbidden" }
+           $ref: "#/components/responses/403Forbidden"
           
           "404":
             description : Not found
             content:
-              application/json:
-                example: { "message": "Meeting not found" }
+              text/plain:
+                example: Le message avec l'ID 6375ef6d1d458a3858c3453e n'existe pas
         security:
           - bearerAuth: []
   
@@ -663,10 +667,10 @@ paths:
 components:
   responses:
     401Unauthorized:
-      description: L'en-tête d'autorisation est manquante
+      description: Vous devez être connecté
       content : 
         text/plain :
-          example : L'en-tête d'autorisation est manquante
+          example : Vous devez être connecté
     403Forbidden:
       description: Vous n'êtes pas autorisé à accéder à cette ressource
       content:
@@ -744,9 +748,9 @@ components:
             type:
              - number
             required: true
-            validate:
-              validator: validateGeoJsonCoordinates
-              message: "{VALUE} is not a valid longitude/latitude(/altitude) coordinates array"
+            example:
+              - 6.647778558579233
+              - 46.78060279685718
           default:
             - 6.647778558579233
             - 46.78060279685718 

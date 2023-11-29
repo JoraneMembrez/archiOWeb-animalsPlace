@@ -33,12 +33,12 @@ beforeEach(async function () {
   [animalOne, animalTwo] = await Animal.create([
     {
       name: "Fluffy",
-      species: "Cat",
+      species: "chat",
       owner: userOne._id,
     },
     {
       name: "Buddy",
-      species: "Dog",
+      species: "chien",
       owner: userTwo._id,
     },
   ]);
@@ -56,7 +56,7 @@ describe("POST /meetings/like/:animalID", function () {
       .expect(200)
       .expect("Content-Type", /json/);
 
-    expect(resOne.body.message).toBe("Liked");
+    expect(resOne.body.message).toBe("Vous avez aimé un animal");
   });
 
   test("should create a meeting when two animals like each other", async function () {
@@ -75,7 +75,7 @@ describe("POST /meetings/like/:animalID", function () {
       .expect(200)
       .expect("Content-Type", /json/);
 
-    expect(resTwo.body.message).toBe("Matched");
+    expect(resTwo.body.message).toBe("Un nouveau match !");
   });
 });
 

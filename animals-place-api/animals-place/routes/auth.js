@@ -11,15 +11,17 @@ const router = express.Router();
 router.post("/login", async (req, res, next) => {
   try {
     const user = await User.findOne({ email: req.body.email });
-
+    const email = req.body.email;
     if (!user) {
-      return res.sendStatus(401);
+      return res
+        .status(401)
+        .send({ message: `L'email ${email} n'est pas correct` });
     }
 
     const valid = await bcrypt.compare(req.body.password, user.password);
 
     if (!valid) {
-      return res.sendStatus(401);
+      return res.status(401).send({ message: "Mot de passe incorrect" });
     }
 
     const exp = Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
@@ -33,7 +35,7 @@ router.post("/login", async (req, res, next) => {
       if (err) {
         return next(err);
       }
-      res.send({ user: user, token: token });
+      res.send({ Prénom: user.firstName, Email: user.email, Token: token });
     });
   } catch (err) {
     next(err);
@@ -49,7 +51,7 @@ export async function authenticate(req, res, next) {
   // Ensure the header is present.
   const authorization = req.get("Authorization");
   if (!authorization) {
-    return res.status(401).send("L'en-tête d'autorisation est manquante");
+    return res.status(401).send("Vous devez être connecté");
   }
   // Check that the header has the correct format.
   const match = authorization.match(/^Bearer (.+)$/);
@@ -92,6 +94,10 @@ export function authorize(requiredPermission) {
 }
 
 router.post("/logout", authenticate, (req, res) => {
-  res.clearCookie("token");
-  res.sendStatus(200).message("Vous êtes déconnecté");
+  try {
+    res.clearCookie("token");
+    res.status(200).send({ message: "Vous êtes déconnecté" });
+  } catch (err) {
+    res.status(401).send({ message: "Vous n'êtes pas connecté" });
+  }
 });

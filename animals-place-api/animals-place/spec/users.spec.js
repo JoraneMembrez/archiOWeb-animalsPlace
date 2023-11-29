@@ -2,6 +2,7 @@ import supertest from "supertest";
 import app from "../app.js";
 import User from "../models/user.js";
 import mongoose from "mongoose";
+import auth from "../routes/auth.js";
 import { cleanUpDatabase, generateValidJwt } from "./utils.js";
 
 beforeEach(cleanUpDatabase);
@@ -15,8 +16,8 @@ describe("POST /users", function () {
         lastName: "Doe",
         email: "john.doe@gmail.com",
         password: "password",
+        role: "admin",
       })
-
       .expect(201)
       .expect("Content-Type", /json/);
 
@@ -25,7 +26,7 @@ describe("POST /users", function () {
     expect(res.body.firstName).toEqual("John");
     expect(res.body.lastName).toEqual("Doe");
     expect(res.body.email).toEqual("john.doe@gmail.com");
-    expect(res.body.role).toEqual("user");
+    expect(res.body.role).toEqual("admin");
     expect(res.body.animals).toEqual([]);
     expect(res.body.registrationDate).toBeString();
   });
@@ -34,6 +35,7 @@ describe("POST /users", function () {
 describe("GET /users", function () {
   let johnDoe;
   let janeDoe;
+
   beforeEach(async function () {
     // Create 2 users before retrieving the list.
     [johnDoe, janeDoe] = await Promise.all([
@@ -42,6 +44,7 @@ describe("GET /users", function () {
         lastName: "Doe",
         email: "john@gmail.com",
         password: "123",
+        role: "admin",
       }),
       User.create({
         firstName: "Jane",
@@ -52,31 +55,16 @@ describe("GET /users", function () {
     ]);
   });
 
-  test("should retrieve the list of users", async function () {
-    const token = await generateValidJwt(johnDoe);
+  test("should retrieve the list of users as an admin", async function () {
+    const validAdminToken = await generateValidJwt(johnDoe);
+
     const res = await supertest(app)
       .get("/users")
-      .set("Authorization", `Bearer ${token}`)
+      .set("Authorization", `Bearer ${validAdminToken}`)
       .expect(200)
       .expect("Content-Type", /json/);
     expect(res.body).toHaveLength(2);
     expect(res.body).toBeArray();
-    expect(res.body[1]).toBeObject();
-    expect(res.body[1]._id).toEqual(janeDoe.id);
-    expect(res.body[1].firstName).toEqual("Jane");
-    expect(res.body[1].lastName).toEqual("Doe");
-    expect(res.body[1]).toContainAllKeys([
-      "_id",
-      "firstName",
-      "lastName",
-      "email",
-      "registrationDate",
-      "animals",
-      "role",
-      "location",
-      "__v",
-    ]);
-
     expect(res.body[0]).toBeObject();
     expect(res.body[0]._id).toEqual(johnDoe.id);
     expect(res.body[0].firstName).toEqual("John");
@@ -86,15 +74,34 @@ describe("GET /users", function () {
       "firstName",
       "lastName",
       "email",
+      "password",
       "registrationDate",
+      "address",
+      "animals",
+      "role",
+      "location",
+      "__v",
+    ]);
+
+    expect(res.body[1]).toBeObject();
+    expect(res.body[1]._id).toEqual(janeDoe.id);
+    expect(res.body[1].firstName).toEqual("Jane");
+    expect(res.body[1].lastName).toEqual("Doe");
+    expect(res.body[1]).toContainAllKeys([
+      "_id",
+      "firstName",
+      "lastName",
+      "email",
+      "password",
+      "registrationDate",
+      "address",
       "animals",
       "role",
       "location",
       "__v",
     ]);
   });
-});
-
-afterAll(async () => {
-  await mongoose.disconnect();
+  afterAll(async () => {
+    await mongoose.disconnect();
+  });
 });

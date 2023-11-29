@@ -12,7 +12,7 @@ const router = express.Router();
 router.get("/", authenticate, async function (req, res, next) {
   try {
     const species_filter = req.query.species;
-    console.log(species_filter);
+    //  console.log(species_filter);
     let animals_db = Animal;
 
     if (species_filter) {

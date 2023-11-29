@@ -16,7 +16,7 @@ export function createWebSocketServer(httpServer) {
   // Handle new client connections.
   wss.on("connection", function (ws) {
     debug("New WebSocket client connected");
-    console.log("New WebSocket client connected");
+    // console.log("New WebSocket client connected");
 
     // Keep track of clients.
     clients.push(ws);
@@ -34,7 +34,7 @@ export function createWebSocketServer(httpServer) {
 
       // Handle the message.
       onMessageReceived(ws, parsedMessage);
-      console.log("message received : ", parsedMessage);
+      //  console.log("message received : ", parsedMessage);
     });
 
     // Clean up disconnected clients.
@@ -51,22 +51,22 @@ export function broadcastMessage(message) {
   );
 
   clients.forEach((c) => c.send(JSON.stringify(message)));
-  console.log("un message a été envoyé : ", message);
+  // console.log("un message a été envoyé : ", message);
 }
 
 export function sendMessageToConnectedClient(userID, message) {
   debug(`Sending message to a connected client: ${JSON.stringify(message)}`);
 
-  console.log("userID destination : ", userID);
-  console.log("message : ", message);
+  // console.log("userID destination : ", userID);
+  // console.log("message : ", message);
 
   const client = users_websocket.get(userID);
-  console.log("client : ", client);
+  // console.log("client : ", client);
 
   if (client && client.readyState === client.OPEN) {
     try {
       client.send(JSON.stringify(message));
-      console.log("Un message a été envoyé : ", message);
+      //   console.log("Un message a été envoyé : ", message);
     } catch (error) {
       console.error("Error sending message to client with ID");
     }
@@ -83,6 +83,6 @@ function onMessageReceived(ws, message) {
 
   if (message.type === "new_user") {
     users_websocket.set(message.id, ws);
-    console.log("users_websocket : ", users_websocket);
+    //  console.log("users_websocket : ", users_websocket);
   }
 }

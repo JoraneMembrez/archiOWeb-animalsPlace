@@ -87,7 +87,7 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
         sendMessageToConnectedClient(client1, targetMessage);
         sendMessageToConnectedClient(client2, targetMessage);
         const savedMeeting = await newMeeting.save();
-        res.status(200).json({ message: "Match !" });
+        res.status(200).json({ message: "Un nouveau match !" });
       } else {
         const targetClient = animal_liked.owner._id.toString();
         const targetMessage = "Un nouveau like !";
@@ -139,7 +139,7 @@ router.get("/count", authenticate, async (req, res, next) => {
 
     // recherche les match dans le model des animaux du user
     const animals = await Animal.find({ owner: userID }).populate("matches");
-    console.log(animals);
+    // console.log(animals);
     // compte le nombre de match obtenu
     let count = 0;
     animals.forEach((animal) => {
@@ -174,7 +174,9 @@ router.delete("/:meetingID", authenticate, async (req, res, next) => {
 
     const deletedMeeting = await Meeting.findById(meetingID);
     if (!deletedMeeting) {
-      res.status(404).json({ message: "Meeting not found" });
+      res
+        .status(404)
+        .json({ message: `Le rencontre avec l'ID ${meetingID} n'existe pas` });
       return;
     }
 
@@ -200,7 +202,7 @@ router.delete("/:meetingID", authenticate, async (req, res, next) => {
     animal2.matches.pull(deletedMeetingId);
     await animal1.save();
     await animal2.save();
-    res.status(200).json({ message: "Meeting deleted" });
+    res.status(200).json({ message: "Rencontre supprimée" });
   } catch (error) {
     next(error);
   }
