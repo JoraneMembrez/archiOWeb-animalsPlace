@@ -4,48 +4,39 @@ import User from "../models/user.js";
 import Meeting from "../models/meeting.js";
 import { authenticate } from "./auth.js";
 import { broadcastMessage } from "../ws.js";
-import swaggerJSDoc from "swagger-jsdoc";
+import Image from "../models/image.js";
+import fs from "fs";
+import path from "path";
+import multer from "multer";
+import mongoose from "mongoose";
 
 const router = express.Router();
 
-// on peut voir tous les animaux sauf les notres
+// on peut voir tous les animaux sauf les notres ou ceux des autres utilisateurs
 router.get("/", authenticate, async function (req, res, next) {
   try {
     const species_filter = req.query.species;
-    //  console.log(species_filter);
+    const mesAnimaux_filter = req.query.owner;
     let animals_db = Animal;
 
     if (species_filter) {
       animals_db = animals_db.find({ species: species_filter });
     }
-    // Récupérez l'ID de l'utilisateur connecté à partir des données d'authentification ou de la session
+
     const userID = req.currentUserId;
 
+    if (mesAnimaux_filter === "true") {
+      animals_db = animals_db.find({ owner: userID });
+    } else {
+      animals_db = animals_db.find({ owner: { $ne: userID } });
+    }
+
+    if (mesAnimaux_filter === "true" && species_filter) {
+      animals_db = animals_db.find({ owner: userID, species: species_filter });
+      animals_db = animals_db.find({ owner: userID });
+    }
     // requête de recherche pour récupérer tous les animaux dont le propriétaire n'est pas l'utilisateur connecté 🙋
-    const animals = await animals_db
-      .find({
-        owner: { $ne: userID },
-      })
-      .populate("name")
-      .populate("owner")
-      .exec();
-
-    res.send(animals);
-  } catch (err) {
-    res.status(401).json();
-  }
-});
-
-// on peut voir tous ses animaux 🐒
-router.get("/myAnimals", authenticate, async function (req, res, next) {
-  try {
-    const userID = req.currentUserId;
-
-    // Requête pour récupérer tous les animaux dont le propriétaire est l'utilisateur actuel, triés par ordre alphabétique du nom
-    const animals = await Animal.find({ owner: userID })
-      .collation({ locale: "en", strength: 2 }) // Utiliser pour ignorer les majuscules
-      .sort({ name: 1 })
-      .exec();
+    const animals = await animals_db.populate("name").populate("owner").exec();
 
     res.send(animals);
   } catch (err) {
@@ -82,7 +73,9 @@ router.post("/", authenticate, async (req, res, next) => {
   try {
     // Recherche de l'utilisateur par ID
     const user = await User.findById(req.currentUserId);
-    const newPictures = req.body.picturesURL;
+    // const newPictures = req.body.picturesURL;
+    const species = req.body.species;
+    const name = req.body.name;
 
     if (!user) {
       // L'utilisateur n'existe pas, renvoyez une erreur
@@ -90,6 +83,18 @@ router.post("/", authenticate, async (req, res, next) => {
       error.status = 404;
       throw error;
     }
+
+    if (!species) {
+      const error = new Error("Le champ species (espèce) est requis");
+      error.status = 400;
+      throw error;
+    }
+    if (!name) {
+      const error = new Error("Le champ name est requis");
+      error.status = 400;
+      throw error;
+    }
+
     // vérifier que le nom de l'animal n'est pas déjà utilisé dans ses autres animaux
     const animals = await Animal.find({ owner: req.currentUserId });
     const animalName = req.body.name;
@@ -127,10 +132,16 @@ router.post("/", authenticate, async (req, res, next) => {
 router.delete("/:animalId", authenticate, async (req, res, next) => {
   try {
     const animalId = req.params.animalId;
-    const deletedAnimal = await Animal.findOneAndDelete({
-      _id: animalId,
-      owner: req.currentUserId, // Assurez-vous que seul le propriétaire peut supprimer
-    });
+
+    //vérifier que l'ID est valide
+    const validId = mongoose.Types.ObjectId.isValid(animalId);
+    if (!validId) {
+      const error = new Error(`L'ID ${animalId} n'est pas valide`);
+      error.status = 400;
+      throw error;
+    }
+
+    const deletedAnimal = await Animal.findById(animalId);
 
     if (!deletedAnimal) {
       const error = new Error(`L'animal avec l'ID ${animalId} n'existe pas`);
@@ -138,10 +149,19 @@ router.delete("/:animalId", authenticate, async (req, res, next) => {
       throw error;
     }
 
-    // Supprimez l'animal de la liste d'animaux de l'utilisateur
+    // Vérifier si l'utilisateur est le propriétaire de l'animal
+    if (deletedAnimal.owner.toString() !== req.currentUserId) {
+      const error = new Error(
+        `Vous n'êtes pas autorisé à supprimer cet animal`
+      );
+      error.status = 403;
+      throw error;
+    }
+
+    // Supprimer l'animal de la liste d'animaux de l'utilisateur
     const user = await User.findById(req.currentUserId);
     user.animals.pull(deletedAnimal._id);
-    // trouver si l'animal avait des Meeting et les supprimer
+    // Trouver si l'animal avait des meetings et les supprimer
     const meetings = await Meeting.find({
       $or: [{ animal1: deletedAnimal._id }, { animal2: deletedAnimal._id }],
     });
@@ -150,12 +170,11 @@ router.delete("/:animalId", authenticate, async (req, res, next) => {
     });
 
     await user.save();
-
     return res.status(204).json({
       message: `L'animal avec l'ID ${animalId} a été supprimé avec succès`,
     });
-  } catch (err) {
-    return next(err);
+  } catch (error) {
+    next(error);
   }
 });
 
@@ -188,9 +207,15 @@ router.patch("/:animalId", authenticate, async (req, res, next) => {
       location: updates.location,
     };
 
+    if (!allowUpdates.name) {
+      allowUpdates.name = animal.name;
+    }
+
     const disallowedUpdates = Object.keys(updates).filter(
       (key) => !allowUpdates[key]
     );
+
+    console.log(disallowedUpdates);
 
     if (disallowedUpdates.length > 0) {
       res.status(400).json({
@@ -214,96 +239,141 @@ router.patch("/:animalId", authenticate, async (req, res, next) => {
 });
 
 // ajouter une image dans le tableau des images des animaux
-router.patch("/addImg/:animalId", authenticate, async (req, res, next) => {
-  try {
-    const fieldName = "picturesURL"; // pour que recoive bien le bon champ
-    const newPicturesURL = req.body[fieldName];
-    const animalId = req.params.animalId;
-    const animal = await Animal.findById(animalId);
-    if (!animal) {
-      res
-        .status(404)
-        .json({ message: `Animal avec l'ID ${animalId} n'existe pas` });
-      return;
-    }
-    if (!newPicturesURL) {
-      res.status(400).json({ message: `Le champ ${fieldName} est requis` });
-      return;
-    }
-
-    if (animal.owner.toString() !== req.currentUserId.toString()) {
-      res.status(403).json({
-        message: "Vous n'avez pas la permission de modifier cet animal",
-      });
-      return;
-    }
-
-    if (newPicturesURL) {
-      // Assurez-vous que newPicturesURL est toujours un tableau
-      const newPicturesArray = Array.isArray(newPicturesURL)
-        ? newPicturesURL
-        : [newPicturesURL];
-      // Ajouter les nouveaux URL à la liste des URL de l'animal un par un
-      newPicturesArray.forEach((newPicture) => {
-        animal.picturesURL.push(newPicture);
-      });
-      await animal.save(); // Enregistrez les modifications dans la base de données
-    }
-
-    res.status(200).json({ message: "Images ajoutées avec succès" }); // Répond avec un succès
-  } catch (error) {
-    next(error);
-  }
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads"); // Répertoire de stockage des images
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname); // Nom du fichier
+  },
 });
 
-// supprimer une image dans le tableau des images des animaux
-router.post("/deleteImg/:animalId", authenticate, async (req, res, next) => {
-  try {
-    const fieldName = "picturesURL"; // pour que recoive bien le bon champ
-    const deletedPictureURL = req.body[fieldName];
-    const animalId = req.params.animalId;
-    const animal = await Animal.findById(animalId);
-    const picturesURL = animal.picturesURL;
+const upload = multer({ storage: storage });
 
-    if (!animal) {
-      res
-        .status(404)
-        .json({ message: `Animal avec l'ID ${animalId} n'existe pas` });
-      return;
-    }
+router.post(
+  "/:animalId/images",
+  authenticate,
+  upload.single("image"),
+  async (req, res, next) => {
+    try {
+      const animalId = req.params.animalId;
+      const animal = await Animal.findById(animalId);
 
-    if (!deletedPictureURL) {
-      res.status(400).json({ message: `Le champ ${fieldName} est requis` });
-      return;
-    }
+      if (!animal) {
+        res
+          .status(404)
+          .json({ message: `Animal avec l'ID ${animalId} n'existe pas` });
+        return;
+      }
 
-    if (animal.owner.toString() !== req.currentUserId.toString()) {
-      res.status(403).json({
-        message: "Vous n'avez pas la permission de modifier cet animal",
-      });
-      return;
-    }
-
-    if (deletedPictureURL) {
-      // Vérifie si l'image à supprimer est présente dans le tableau
-      const isImagePresent = animal.picturesURL.includes(deletedPictureURL);
-      console.log(picturesURL);
-      if (!isImagePresent) {
-        res.status(400).json({
-          message: "L'image n'est pas présente dans le tableau des images",
+      if (animal.owner.toString() !== req.currentUserId.toString()) {
+        res.status(403).json({
+          message: "Vous n'avez pas la permission de modifier cet animal",
         });
         return;
       }
 
-      // Supprime le deletedPictureURL du tableau picturesURL
-      animal.picturesURL = animal.picturesURL.filter(
-        (url) => url !== deletedPictureURL
-      );
+      if (!req.file) {
+        res.status(400).json({ message: `Veuillez télécharger une image` });
+        return;
+      }
 
-      await animal.save(); // Enregistrez les modifications dans la base de données
+      const imageBuffer = fs.readFileSync(req.file.path);
+
+      const newImage = new Image({
+        owner: animalId,
+        image: {
+          data: imageBuffer,
+          contentType: req.file.mimetype,
+        },
+      });
+
+      await newImage.save(); // Enregistrement de l'image
+
+      // Ajout de l'URL de l'image à l'animal
+      animal.picturesURL.push(req.file.path); // Vous pouvez ajuster cela en fonction de la logique que vous souhaitez
+
+      await animal.save(); // Enregistrement des modifications de l'animal
+
+      res.status(201).json({ message: `Image ajoutée avec succès` }); // Répond avec succès
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+// supprimer une image dans le tableau des images des animaux
+router.delete(
+  "/:animalId/:imageId/images",
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const animalId = req.params.animalId;
+      const imageId = req.params.imageId;
+
+      const animal = await Animal.findById(animalId);
+      if (!animal) {
+        res
+          .status(404)
+          .json({ message: `Animal avec l'ID ${animalId} n'existe pas` });
+        return;
+      }
+
+      if (animal.owner.toString() !== req.currentUserId.toString()) {
+        res.status(403).json({
+          message: "Vous n'avez pas la permission de modifier cet animal",
+        });
+        return;
+      }
+
+      const image = await Image.findById(imageId);
+
+      if (!image) {
+        res
+          .status(404)
+          .json({ message: `Image avec l'ID ${imageId} n'existe pas` });
+        return;
+      }
+
+      const imageIndex = animal.picturesURL.indexOf(image.imageURL);
+
+      if (imageIndex > -1) {
+        animal.picturesURL.splice(imageIndex, 1);
+      }
+
+      image.deleteOne(); // Supprimer l'image de la base de données
+
+      await animal.save(); // Enregistrer les modifications de l'animal
+
+      res.status(204);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// récupérer une image dans le tableau des images des animaux
+router.get("/:animalId/images", authenticate, async (req, res, next) => {
+  try {
+    const animalId = req.params.animalId;
+    const animal = await Animal.findById(animalId);
+
+    if (!animal) {
+      res
+        .status(404)
+        .json({ message: `Animal avec l'ID ${animalId} n'existe pas` });
+      return;
     }
 
-    res.status(200).json({ message: "Image supprimée avec succès" });
+    if (animal.owner.toString() !== req.currentUserId.toString()) {
+      res.status(403).json({
+        message: "Vous n'avez pas la permission de modifier cet animal",
+      });
+      return;
+    }
+
+    const images = await Image.find({ owner: animalId });
+
+    res.status(200).json(images);
   } catch (error) {
     next(error);
   }

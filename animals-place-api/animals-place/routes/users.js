@@ -60,7 +60,7 @@ router.get("/who", authenticate, async function (req, res, next) {
 });
 
 // afficher les utilisateurs avec qui ont a matché ❤️
-router.get("/matchedUsers", authenticate, async function (req, res, next) {
+router.get("/matches", authenticate, async function (req, res, next) {
   try {
     const authenticatedUserId = req.currentUserId;
 
@@ -189,7 +189,7 @@ router.patch(
       const userLog = await User.findById(authenticatedUserID);
 
       if (!userToUpdate) {
-        return res.status(400).json({
+        return res.status(404).json({
           message: `L'utilisateur avec l'ID ${requestedUserID} n'existe pas`,
         });
       }
@@ -200,7 +200,7 @@ router.patch(
 
       if (!isValidUpdate) {
         return res
-          .status(400)
+          .status(404)
           .json({ message: "Champ(s) non valide(s) pour la mise à jour" });
       }
 
@@ -250,13 +250,13 @@ router.delete("/:userID", [idValidation, authenticate], async (req, res) => {
     // vérification si l'utilisateur connecté est un administrateur
     if (user.role === "admin") {
       await User.deleteOne({ _id: requestedUserID });
-      return res.status(200).json({
+      return res.status(204).json({
         message: `Utilisateur avec l'ID ${requestedUserID} supprimé avec succès`,
       });
     } else if (authenticatedUserID === requestedUserID) {
       // Si l'utilisateur connecté est celui demandant la suppression
       await User.deleteOne({ _id: requestedUserID });
-      return res.status(200).json({
+      return res.status(204).json({
         message: `Utilisateur avec l'ID ${requestedUserID} supprimé avec succès`,
       });
     } else {

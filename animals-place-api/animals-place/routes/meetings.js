@@ -26,6 +26,18 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
     const animal_liked = await Animal.findById(animalID_liked);
     const animal_liking = await Animal.findById(animalID_liking);
 
+    const owner_animal_liked = await User.findById(animal_liked.owner);
+    const owner_animal_liking = await User.findById(animal_liking.owner);
+
+    if (
+      owner_animal_liked._id.toString() === owner_animal_liking._id.toString()
+    ) {
+      res
+        .status(400)
+        .json({ message: "Vous ne pouvez pas liker votre propre animal" });
+      return;
+    }
+
     if (!animal_liked) {
       res.status(404).json({
         message: `L'animal avec l'ID ${animalID_liked} que vous souhaitez aimer n'existe pas`,
@@ -87,16 +99,16 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
         sendMessageToConnectedClient(client1, targetMessage);
         sendMessageToConnectedClient(client2, targetMessage);
         const savedMeeting = await newMeeting.save();
-        res.status(200).json({ message: "Un nouveau match !" });
+        res.status(201).json({ message: "Un nouveau match !" });
       } else {
         const targetClient = animal_liked.owner._id.toString();
         const targetMessage = "Un nouveau like !";
         // envoie un message a la personne qui a été liké
         sendMessageToConnectedClient(targetClient, targetMessage);
-        res.status(200).json({ message: "Vous avez aimé un animal" });
+        res.status(201).json({ message: "Vous avez aimé un animal" });
       }
     } else {
-      res.status(200).json({ message: "L'animal est déjà aimé" });
+      res.status(201).json({ message: "L'animal est déjà aimé" });
     }
   } catch (error) {
     next(error);
@@ -152,7 +164,7 @@ router.get("/count", authenticate, async (req, res, next) => {
 });
 
 // afficher les rencontres d'un utilisateur 🤝
-router.get("/userMeetings", authenticate, async (req, res, next) => {
+router.get("/users", authenticate, async (req, res, next) => {
   try {
     const userID = req.currentUserId;
 
@@ -202,7 +214,7 @@ router.delete("/:meetingID", authenticate, async (req, res, next) => {
     animal2.matches.pull(deletedMeetingId);
     await animal1.save();
     await animal2.save();
-    res.status(200).json({ message: "Rencontre supprimée" });
+    res.status(204).json({ message: "Rencontre supprimée" });
   } catch (error) {
     next(error);
   }

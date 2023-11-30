@@ -26,7 +26,7 @@ paths:
       tags:
        - users
       summary: Retourne tous les utilisateurs de l'application de manière paginée
-      description: Il faut être admin pour pouvoir exécuter cette requête
+      description: Il faut être admin pour pouvoir exécuter cette requête. Si les paramètres ne sont pas corrects, les paramètres par défaut seront utilisés. (Page 1, 5 users par page)
       parameters:
         - name: page
           in: query
@@ -57,10 +57,15 @@ paths:
                totalPages:
                   type: integer
         "403":
-          description : You are not authorized to access this resource
+          description : Vous n'êtes pas autorisé à accéder à cette ressource
           content:
               text/plain:
                 example: Forbidden
+        "401":
+          description : Vous n'avez pas le droit d'accéder à cette resource
+          content:
+              text/plain:
+                example: Vous devez être connecté
       security:
         - bearerAuth: []
      post :
@@ -122,6 +127,11 @@ paths:
           content:
               text/plain:
                 example: Interdit
+        "401":
+          description : Vous n'avez pas le droit d'accéder à cette resource
+          content:
+              text/plain:
+                example: Vous devez être connecté
     patch:
           tags:
             - users
@@ -148,16 +158,20 @@ paths:
                 application/json:
                  schema:
                    $ref: '#/components/schemas/UserBasic'
-            '400':
+            '404':
               description: L'utilisateur n'a pas été trouvé ou la requête n'est pas valide
               content:
-                text/plain:
-                  example: L'utilisateur avec l'ID 6375ef6d1d458a3858c3453e n'exite pas
+               text/plain:
+                examples :                  
+                    Utilisateur invalide: 
+                      value : L'utilisateur avec l'ID 6375ef6d1d458a3858c3453e n'exite pas
+                    Requête invalide: 
+                      value : Champ(s) non valide(e) pour la mise à jour
             '403':
               description: Vous n'êtes pas autorisé à accéder à cette ressource
               content:
                 text/plain:
-                  example: Forbidden
+                  example: Interdit
             '401' :
               description : Vous n'êtes pas autorisé à accéder à cette ressource
               content:
@@ -178,7 +192,7 @@ paths:
             schema:
               type: string
         responses:
-          '200':
+          '204':
             description: Utilisateur supprimée avec succès
             content : 
               text/plain:
@@ -200,7 +214,7 @@ paths:
                 example: Unauthorized
             
     
-  /users/matchedUsers : 
+  /users/matches : 
     get :
         tags:
           - users
@@ -278,8 +292,8 @@ paths:
     get :
       tags:
        - animals
-      summary: Obtenir tous les animaux qui n'appartiennent pas à l'utilisateur actuel
-      description: Vous devez être authentifié pour exécuter cette requête.
+      summary: Obtenir les animaux de l'utilisateur actuel ou des autres utilisateurs, en fonction des espèces que l'on souhaite voir
+      description: Cette requête permet d'obtenir tous les aniaux possédés par les autres utilisateurs, ou par l'utilisateur actuel en fonction du paramètre owner, si celui-ci est égal à true, on obtient les animaux de l'utilisateur actuel. On peut aussi filtrer sur le type d'espèce que nous souhaitons voir avec le paramètre species. Par défaut, nous observons les animaux des autres utilisateurs sans filtres d'espèces.
       parameters:
         - name : species
           in : query
@@ -287,6 +301,13 @@ paths:
             type : string
             example : chien
           description : Le type d'animal qu'on souhaite obtenir
+        - name : owner
+          in : query
+          schema :
+            type : string
+            example : true
+          description : Si on souhaite obtenir les animaux de l'utilisateur actuel ou les autres utilisateurs (true pour obtenir nos animaux)
+          
       responses: 
         "200":
           description: Réponse réussie
@@ -304,10 +325,8 @@ paths:
                totalPages:
                   type: integer
         "401":
-          description: L'en-tête d'autorisation est manquante
-          content:
-              text/plain:
-                example: L'en-tête d'autorisation est manquante
+          description : La personne n'est pas connecté
+          $ref: "#/components/responses/401Unauthorized"
       security:
         - bearerAuth: []
     post :
@@ -338,28 +357,22 @@ paths:
             content:
               text/plain:
                 example: L'utilisateur avec l'ID 6375ef6d1d458a3858c3453e n'existe pas
-        security:
-          - bearerAuth: []
-  /animals/myAnimals :
-      get :
-        tags:
-          - animals
-        summary: Obtenir tous les animaux appartenant à l'utilisateur actuel
-        description: Vous devez être authentifié pour exécuter cette requête.
-        responses:
-          "200":
-            description: opération réussie
-            content:
-              application/json:
-                schema:
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/Animal"
-          "401":
-            description: L'en-tête d'autorisation est manquante
+          "400" :
+            description : Les champs n'est pas complet ou mal écrit
             content :
               text/plain :
-                example : L'en-tête d'autorisation est manquante
+                examples :
+                  Champ name manquant :
+                    value : Le champ name est requis
+                  Champ mal écrit :
+                    value : Le champ name doit être une chaîne de caractères
+                  Champ species manquant :
+                    value : Le champ species (espèce) est requis
+          "401" :
+            description : L'en-tête d'autorisation est manquante
+          "403" :
+           description : La personne n'est pas connecté
+           $ref: "#/components/responses/403Forbidden"
         security:
           - bearerAuth: []
   /animals/{animalID} :
@@ -377,7 +390,7 @@ paths:
               required: true
             description: L'ID de l'animal à supprimer
         responses:
-          "200":
+          "204":
             description: Opération réussie
             content:
               plain/text:
@@ -432,13 +445,47 @@ paths:
             content : 
               plain/text:
                 example : "L'animal avec l'ID 6375ef6d1d458a3858c3453e n'existe pas"
+          "400" :
+            description : Les champs n'est pas complet ou mal écrit
+            content :
+              text/plain :
+                example : Modification non autorisée des champs matches, owner
         security:
           - bearerAuth: []
-  /animals/addImg/{animalID} :
-    patch :
+  /animals/{animalID}/images :
+    get :
+      tags :
+        - animals
+      summary: Obtenir toutes les images d'un animal par son ID
+      description: Vous devez être authentifié pour exécuter cette requête
+      parameters:
+        - in: path
+          name: animalID
+          example: 6375ef6d1d458a3858c3453e
+          schema:
+            type: string
+            required: true
+          description: L'ID de l'animal dont on souhaite obtenir les images
+      responses:
+        "201":
+          description: Opération réussie
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Image"
+        "401":
+          $ref: "#/components/responses/401Unauthorized"
+        "404":
+          description : L'animal n'a pas été trouvé
+          content : 
+            plain/text:
+              example : "L'animal avec l'ID 6375ef6d1d458a3858c3453e n'existe pas"
+    post :
         tags:
           - animals
-        summary: Ajouter une image à un animal par son ID
+        summary: Ajouter une ou plusieurs image à un animal par son ID
         description: Uniquement les utilisateurs peuvent ajouter des images à leurs propres animaux
         parameters:
           - in: path
@@ -447,48 +494,51 @@ paths:
             schema:
               type: string
               required: true
-            description: L'ID de l'animal à modifier
+            description: L'ID de l'animal auquel ajouter une image
         requestBody:
           required : true
           content:
-            application/json:
+            multipart/form-data:
               schema:
                 type: object
                 properties:
-                  pictureUrl:
-                    type: string
-                    example: https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.woopets.fr%2Fchien%2F
+                  image:
+                    type: array
+                    items:
+                      type: string
+                      format: binary
+                      description : Image à télécharger
+
         responses:
-          "200":
+          "201":
             description: Opération réussi
             content:
-              application/json:
-                schema:
-                  $ref: "#/components/schemas/Animal"
+                plain/text:
+                  example :  Image ajoutée avec succès
           "401":
             $ref: "#/components/responses/401Unauthorized"
           "404":
             description : L'animal n'a pas été trouvé
             content : 
               plain/text:
-                example : "L'animal avec l'ID 6375ef6d1d458a3858c3453e n'existe pas"
+                example : Animal avec l'ID 6375ef6d1d458a3858c3453e n'existe pas
           "400" :
             description : Les champs n'est pas complet ou mal écrit
             content:
               text/plain:
-                example: Le champ pictureUrl est requis
+                example: Veuillez télécharger une image
           "403":
             description: Vous n'êtes pas autorisé à accéder à cette ressource
             content:
               text/plain:
-                example: Vous n'avez pas la permission de modifier cet animal"
+                example: Vous n'avez pas la permission de modifier cet animal
         security:
           - bearerAuth: []
-
+  /animals/{animalID}/{imageID}/images:
     delete :
         tags:
           - animals
-        summary: Supprime une image d'un animal à l'aide de son ID
+        summary: Supprime une image d'un animal à l'aide de son ID, et de l'ID de l'image qu'on souhaite supprimer
         description: Il faut être authentifié pour exécuter cette requête et être le propriétaire de l'animal
         parameters:
           - in: path
@@ -497,38 +547,50 @@ paths:
             schema:
               type: string
               required: true
-            description: L'ID de l'animal à qui ont veut ajouter une image
-        requestBody:
-          required : true
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  pictureUrl:
-                    type: string
-                    example: https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.woopets.fr%2Fchien%2F
+            description: L'ID de l'animal à qui ont veut supprimée une image
+          - in: path
+            name : imageID
+            example: 6375ef6d1d458a3858c3453e
+            schema:
+              type: string
+              required: true
+            description: L'ID de l'image à supprimer
         responses:
-          "200":
-            description: Opération réussi
-            content:
-              application/json:
-                schema:
-                  $ref: "#/components/schemas/Animal"
+          "204":
+            description: Opération réussie
           "401":
             $ref: "#/components/responses/401Unauthorized"
           "404":
             description : L'animal n'existe pas
             content : 
-              plain/text:
-                example : "L'animal avec l'ID 6375ef6d1d458a3858c3453e n'existe pas"
+              plain/text :
+               examples : 
+                Animal non trouvé :
+                 value : Animal avec l'ID 6375ef6d1d458a3858c3453e n'existe pas
+                Image non trouvée : 
+                 value : Image avec l'ID 6375ef6d1d458a3858c3453e n'existe pas
+
           "400" :
             description: Les champs n'est pas complet ou mal écrit
             content:
               text/plain:
-                example: Le champ pictureUrl est requis
+               examples :
+                Champ manquant:
+                 value: Le champ pictureUrl est requis
+                Suppression de plusieurs images : 
+                  value : Vous ne pouvez supprimer qu'une image à la fois
+                Image non présente dans le tableau des images :
+                  example : L'image n'est pas présente dans le tableau des images
+          "403" :
+            description : La personne souhaite modifier un animal qui ne lui appartient pas
+            content :
+              text/plain :
+                example : Vous n'avez pas la permission de modifier cet animal
         security:
           - bearerAuth: []
+            
+  
+    
   /animals/count :
     get :
       tags:
@@ -540,7 +602,10 @@ paths:
           description: Requête réussi
           content:
             application/json:
-                  example : {"_id": "Chat", "count": 5}
+                  example :
+                  - {"_id": "chat", "count": 2}
+                  - {"_id": "chien", "count": 7}
+                  - {"_id": "lapin", "count": 10}
 
         "401":
           $ref: "#/components/responses/401Unauthorized"
@@ -571,16 +636,17 @@ paths:
                   type: string
                   example: 6375ef6d1d458a3858c3453e
       responses:
-        "200":
+        "201":
           description: Successful response
           content:
-            application/json:
-             schema:
-               type: object
-               properties :
-                 message :
-                  type: string
-                  example: Vous avez aimé un animal
+            text/plain:
+              examples : 
+                Animal liké :
+                  value : Vous avez aimé un animal
+                Animal déjà liké :
+                  value : L'animal est déjà aimé
+                Création d'une rencontre (les deux animaux se sont likés) : 
+                  value : Un nouveau match ! 
         "401":
           $ref: "#/components/responses/401Unauthorized"
         "404":
@@ -592,15 +658,20 @@ paths:
           description : Les champs n'est pas complet ou mal écrit
           content:
             text/plain:
-              example: ID non valide
+              examples :
+                champ invalide : 
+                  value : ID non valide
+                on souhaite liker notre propre animal : 
+                  value : Vous ne pouvez pas liker votre propre animal
+
       security:
         - bearerAuth: []
   /meetings :
     get :
       tags:
        - meetings
-      summary: Obtenir toutes les rencontres appartenant à l'utilisateur actuel
-      description: Vous devez être authentifié pour exécuter cette requête ou être un admin
+      summary: Obtenir toutes les rencontres uniquement un admin peut avoir accès à cette ressource
+      description: Vous devez être authentifié pour exécuter cette requête et être un admin
       responses: 
         "200":
           description: Réponse réussie
@@ -649,11 +720,11 @@ paths:
               example: 6375ef6d1d458a3858c3453e
             description: L'ID de la rencontre à supprimer
         responses:
-          "200":
+          "204":
             description: Meeting deleted
             content:
-              application/json:
-                example: { "message": "Rencontre supprimée" }
+              text/plain:
+                example: Rencontre supprimée
 
           "403":   
            $ref: "#/components/responses/403Forbidden"
@@ -663,11 +734,29 @@ paths:
             content:
               text/plain:
                 example: Le message avec l'ID 6375ef6d1d458a3858c3453e n'existe pas
+          "401":
+            $ref: "#/components/responses/401Unauthorized"
+        security:
+          - bearerAuth: []           
+  /meetings/users :
+      get :
+        tags:
+          - meetings
+        summary: Obtenir toutes les rencontres appartenant à l'utilisateur actuel
+        description: Vous devez être authentifié pour exécuter cette requête ou être un admin
+        responses: 
+          "200":
+            description: Réponse réussie
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items :
+                    $ref: "#/components/schemas/Meeting"
+          "401":
+            $ref: "#/components/responses/401Unauthorized"
         security:
           - bearerAuth: []
-  
- 
-
 components:
   responses:
     401Unauthorized:
@@ -900,6 +989,19 @@ components:
               type : string
               format : date-time
               example : 2021-04-13T14:30:00.000Z
+
+    Image :
+      type : object
+      properties :
+        _id:
+          type: string
+          example: 6375ef6d1d458a3858c3453e
+        owner :
+           $ref: '#/components/schemas/Animal'
+        image : 
+          type : buffer
+          example : "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.woopets.fr%2Fchien%2F"
+      
     Login:
       type: object
       properties:

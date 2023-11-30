@@ -12,6 +12,7 @@ import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
 import fs from "fs";
 import yaml from "js-yaml";
+import bodyParser from "body-parser";
 
 //server.listen(config.port);
 
@@ -24,7 +25,7 @@ const openApiDocument = yaml.load(fs.readFileSync("./openapi.yml"));
 // const swaggerSpec = swaggerJsdoc(options);
 //const openapiSpecification = swaggerJsdoc(options);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
-
+app.use(bodyParser.urlencoded({ extended: true }));
 // définit sur quel port celui-ci va être lancé
 
 app.use(logger("dev"));
