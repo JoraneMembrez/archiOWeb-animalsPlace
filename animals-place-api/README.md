@@ -1,4 +1,4 @@
-﻿# archiOWeb-animalsPlace
+﻿# ArchiOWeb-AnimalsPlace
 Animals Place est une application de rencontres pour animaux. Ce reposistory contient l'API qui permet à l'application Animals Place (https://github.com/JoraneMembrez/archiOWeb-animalsPlace) de fonctionner.
 
 Déploiement sur Render : https://archioweb-animalsplace.onrender.com/
