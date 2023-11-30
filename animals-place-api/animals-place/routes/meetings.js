@@ -214,7 +214,7 @@ router.delete("/:meetingID", authenticate, async (req, res, next) => {
     animal2.matches.pull(deletedMeetingId);
     await animal1.save();
     await animal2.save();
-    res.status(204).json({ message: "Rencontre supprimée" });
+    res.status(204).json();
   } catch (error) {
     next(error);
   }

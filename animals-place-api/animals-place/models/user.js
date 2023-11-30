@@ -5,18 +5,35 @@ const userSchema = new Schema({
   firstName: {
     type: String,
     required: true,
+    validate: function (value) {
+      const nameRegex = /^[a-zA-Z\-']{2,50}$/;
+      return nameRegex.test(value);
+    },
   },
   lastName: {
     type: String,
+    validate: function (value) {
+      const nameRegex = /^[a-zA-Z\-']{2,50}$/;
+      return nameRegex.test(value);
+    },
   },
   email: {
     type: String,
     required: true,
     unique: true,
+    lowercase: true,
+    validate: function (value) {
+      const emailRegex = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
+      return emailRegex.test(value);
+    },
   },
   password: {
     type: String,
     required: true,
+    validate: function (value) {
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+      return passwordRegex.test(value);
+    },
   },
   registrationDate: {
     type: Date,

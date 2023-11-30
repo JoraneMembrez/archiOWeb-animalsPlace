@@ -5,6 +5,10 @@ const animalSchema = new Schema({
   name: {
     type: String,
     required: true,
+    validate: function (value) {
+      const nameRegex = /^[a-zA-Z\-']{2,50}$/;
+      return nameRegex.test(value);
+    },
   },
   species: {
     type: String,
@@ -23,10 +27,8 @@ const animalSchema = new Schema({
       "serpent",
       "araigné",
       "autre",
-      "Lapin",
-      "Rat",
-      "Tortle",
     ],
+    // envoyer un message d'erreur si l'enum n'est pas respecté
   },
   age: {
     type: Number,

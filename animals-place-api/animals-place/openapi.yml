@@ -72,6 +72,7 @@ paths:
         tags:
           - users
         summary: Création d'un nouvel utilisateur
+        description: Les champs obligatoires pour la création d'un utilisateur sont le prénom (firstName), l'email (email) et le mot de passe (password). Le mot de passe doit contenir au moins 8 caractères dont une majuscule et un chiffre.
         requestBody:
           required : true
           content:
@@ -94,7 +95,15 @@ paths:
             description : La requête n'est pas valide
             content:
               text/plain:
-                example: Le mot de passe, l'email et le prénom sont obligatoires
+                examples : 
+                  Manque un champ:
+                    value:  Le mot de passe, l'email et le prénom sont obligatoires
+                  Le mot de passe est incorrect :
+                    value : Le mot de passe doit contenir au moins 8 caractères dont une majuscule et un chiffre
+                  L'email est incorrect :
+                    value : L'email n'est pas valide
+                  Le prénom est incorrect :
+                    value : Le prénom doit contenir entre 2 et 50 lettres alphabétiques, tirets et apostrophes autorisés
               
   /users/{userID} :
     get :
@@ -368,6 +377,10 @@ paths:
                     value : Le champ name doit être une chaîne de caractères
                   Champ species manquant :
                     value : Le champ species (espèce) est requis
+                  Nom de l'animal incorrect :
+                    value : Le nom de l'animal doit contenir entre 2 et 50 lettres alphabétiques, tirets et apostrophes autorisés
+                  L'espèce de l'animal est incorrecte :
+                    value : L'espèce de l'animal doit être une des suivantes - chien, chat, lapin, furet, hamster, oiseau, tortue, poisson, souris, camélémon, serpent, araigné, autre
           "401" :
             description : L'en-tête d'autorisation est manquante
           "403" :

@@ -128,6 +128,9 @@ router.get("/:userID", authenticate, async (req, res, next) => {
   }
 });
 
+const emailRegex = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+const firstNameRegex = /^[a-zA-ZÀ-ÖØ-öø-ÿ-]{2,50}$/;
 // Créer un utilisateur
 router.post("/", async (req, res, next) => {
   try {
@@ -139,6 +142,31 @@ router.post("/", async (req, res, next) => {
     if (!plainPassword || !email || !firstName) {
       const error = new Error(
         "Le mot de passe, l'email et le prénom sont obligatoires"
+      );
+      error.status = 400;
+      throw error;
+    }
+
+    const isValidEmail = emailRegex.test(email);
+    if (!isValidEmail) {
+      const error = new Error("L'email n'est pas valide");
+      error.status = 400;
+      throw error;
+    }
+
+    const isValidPassword = passwordRegex.test(plainPassword);
+    if (!isValidPassword) {
+      const error = new Error(
+        "Le mot de passe doit contenir au moins 8 caractères, une majuscule et un chiffre"
+      );
+      error.status = 400;
+      throw error;
+    }
+
+    const isValidFirstName = firstNameRegex.test(firstName);
+    if (!isValidFirstName) {
+      const error = new Error(
+        "Le prénom doit contenir entre 2 et 50 lettres alphabétiques, tirets et apostrophes autorisés"
       );
       error.status = 400;
       throw error;
@@ -250,9 +278,7 @@ router.delete("/:userID", [idValidation, authenticate], async (req, res) => {
     // vérification si l'utilisateur connecté est un administrateur
     if (user.role === "admin") {
       await User.deleteOne({ _id: requestedUserID });
-      return res.status(204).json({
-        message: `Utilisateur avec l'ID ${requestedUserID} supprimé avec succès`,
-      });
+      return res.status(204).json();
     } else if (authenticatedUserID === requestedUserID) {
       // Si l'utilisateur connecté est celui demandant la suppression
       await User.deleteOne({ _id: requestedUserID });

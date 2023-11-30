@@ -68,6 +68,7 @@ router.get("/count", authenticate, async function (req, res, next) {
   }
 });
 
+const nameRegex = /^[a-zA-Z\-']{2,50}$/;
 // création d'un nouvel animal 🐒
 router.post("/", authenticate, async (req, res, next) => {
   try {
@@ -89,8 +90,41 @@ router.post("/", authenticate, async (req, res, next) => {
       error.status = 400;
       throw error;
     }
+
+    if (
+      species !== "chien" &&
+      species !== "chat" &&
+      species !== "lapin" &&
+      species !== "furet" &&
+      species !== "hamster" &&
+      species !== "oiseau" &&
+      species !== "tortue" &&
+      species !== "poisson" &&
+      species !== "souris" &&
+      species !== "caméléon" &&
+      species !== "serpent" &&
+      species !== "araigné" &&
+      species !== "autre"
+    ) {
+      const error = new Error(
+        "Le champ species (espèce) doit être une des suivantes : chien, chat, lapin, furet, hamster, oiseau, tortue, poisson, souris, caméléon, serpent, araigné, autre"
+      );
+      error.status = 400;
+      throw error;
+    }
+
     if (!name) {
       const error = new Error("Le champ name est requis");
+      error.status = 400;
+      throw error;
+    }
+
+    // Vérifier que le nom de l'animal est valide
+    const isValidName = nameRegex.test(name);
+    if (!isValidName) {
+      const error = new Error(
+        "Le nom de l'animal doit contenir entre 2 et 50 lettres alphabétiques, tirets et apostrophes autorisés"
+      );
       error.status = 400;
       throw error;
     }
@@ -169,10 +203,9 @@ router.delete("/:animalId", authenticate, async (req, res, next) => {
       await Meeting.findByIdAndDelete(meeting._id);
     });
 
+    await deletedAnimal.deleteOne(); // Supprimer l'animal de la base de données
     await user.save();
-    return res.status(204).json({
-      message: `L'animal avec l'ID ${animalId} a été supprimé avec succès`,
-    });
+    return res.status(204).json();
   } catch (error) {
     next(error);
   }
