@@ -72,20 +72,31 @@ paths:
         tags:
           - users
         summary: Création d'un nouvel utilisateur
-        description: Les champs obligatoires pour la création d'un utilisateur sont le prénom (firstName), l'email (email) et le mot de passe (password). Le mot de passe doit contenir au moins 8 caractères dont une majuscule et un chiffre.
+        description: Les champs obligatoires pour la création d'un utilisateur sont le prénom (firstName), l'email (email) et le mot de passe (password). Le mot de passe doit contenir au moins 8 caractères dont une majuscule et un chiffre. Si vous souhaite créer un admin il faudra ainsi indiquer dans la requête "role"="admin", comme dans l'exemple 2 de requête.
         requestBody:
           required : true
           content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UserPost"
+              application/json:
+                examples :
+                  Utilisateur non-admin :
+                    value :
+                      firstName: John
+                      password : john1234Heig
+                      email: johndoe@gmail.com
+                  Uutilisateur admin : 
+                    value :
+                      firstName: Jane
+                      lastName: Doe
+                      password : jane1234Heig
+                      email: janedoe@gmail.com
+                      role : admin
         responses:
-          "201":
-            description: Création réussie
-            content:
+          "200":
+           description: Opération réussie
+           content:
               application/json:
                 schema:
-                  $ref: "#/components/schemas/UserBasic"
+                  $ref: "#/components/schemas/UserGet"
           "409" :
             description : L'utilisateur existe déjà
             content:
@@ -872,7 +883,23 @@ components:
               example : john.doe@gmail.com
             password :
               type : string
-              example : 1234
+              example : john1234Heig
+    UserPostAdmin :
+      allOf :
+        - type : object
+          properties :
+            firstName: 
+                type : string
+                example : Jane
+            email :
+              type : string
+              example : jane.doe@gmail.com
+            password :
+              type : string
+              example : jane1234Heig
+            role : 
+              type : string
+              example : admin
           
     UserGet :
       allOf :

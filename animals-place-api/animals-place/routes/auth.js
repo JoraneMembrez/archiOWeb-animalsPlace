@@ -12,6 +12,13 @@ router.post("/login", async (req, res, next) => {
   try {
     const user = await User.findOne({ email: req.body.email });
     const email = req.body.email;
+
+    if (!email) {
+      return res
+        .status(401)
+        .send({ message: "Veuillez entrer votre adresse e-mail" });
+    }
+
     if (!user) {
       return res
         .status(401)
