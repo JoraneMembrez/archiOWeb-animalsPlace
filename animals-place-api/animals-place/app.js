@@ -13,6 +13,7 @@ import swaggerJsdoc from "swagger-jsdoc";
 import fs from "fs";
 import yaml from "js-yaml";
 import bodyParser from "body-parser";
+import cors from "cors";
 
 //server.listen(config.port);
 
@@ -21,7 +22,7 @@ mongoose.connect(config.databaseUrl);
 const app = express();
 
 const openApiDocument = yaml.load(fs.readFileSync("./openapi.yml"));
-
+app.use(cors());
 // const swaggerSpec = swaggerJsdoc(options);
 //const openapiSpecification = swaggerJsdoc(options);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
