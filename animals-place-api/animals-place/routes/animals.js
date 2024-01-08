@@ -412,4 +412,32 @@ router.get("/:animalId/images", authenticate, async (req, res, next) => {
   }
 });
 
+// clic sur une personne pour voir son profil
+router.get("/:animalId/:meetingID", authenticate, async (req, res, next) => {
+  try {
+    const animalId = req.params.animalId;
+    const meetingID = req.params.meetingID;
+    const animal = await Animal.findById(animalId);
+
+    if (!animal) {
+      res
+        .status(404)
+        .json({ message: `Animal avec l'ID ${animalId} n'existe pas` });
+      return;
+    }
+
+    // recoit l'id du meeting
+    const meetingId = req.query.meetingId;
+    // si l'id du meeting est présent dans l'url
+
+    broadcastMessage({
+      message: "Heyy, j'aime beaucoup ton animal, et si on se rencontrait ?",
+    });
+
+    res.status(201).json(animal);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

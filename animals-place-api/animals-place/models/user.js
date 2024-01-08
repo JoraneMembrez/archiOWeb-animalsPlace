@@ -30,10 +30,6 @@ const userSchema = new Schema({
   password: {
     type: String,
     required: true,
-    validate: function (value) {
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
-      return passwordRegex.test(value);
-    },
   },
   registrationDate: {
     type: Date,
@@ -71,6 +67,9 @@ const userSchema = new Schema({
       },
       default: [6.647778558579233, 46.78060279685718], // par défaut les coordonées de l'HEIG :)
     },
+  },
+  profilePictureURL: {
+    type: String,
   },
 });
 

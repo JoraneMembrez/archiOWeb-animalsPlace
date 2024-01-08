@@ -13,21 +13,7 @@ const animalSchema = new Schema({
   species: {
     type: String,
     required: true,
-    enum: [
-      "chien",
-      "chat",
-      "lapin",
-      "furet",
-      "hamster",
-      "oiseau",
-      "tortue",
-      "poisson",
-      "souris",
-      "caméléon",
-      "serpent",
-      "araigné",
-      "autre",
-    ],
+    enum: ["chien", "chat", "lapin", "cheval"],
     // envoyer un message d'erreur si l'enum n'est pas respecté
   },
   age: {
@@ -41,6 +27,9 @@ const animalSchema = new Schema({
     type: String,
   },
   description: {
+    type: String,
+  },
+  race: {
     type: String,
   },
 

@@ -95,11 +95,14 @@ router.post("/like/:animalID", authenticate, async (req, res, next) => {
 
         const targetMessage = "Un nouveau Match !";
         // il faut pousser dnas le tableau des matched de l'animal en question        // envoie un message aux 2 personnes ayant matché
-
+        // envoyer un objet avec l'id de la rencontre et le message -> checker
         sendMessageToConnectedClient(client1, targetMessage);
         sendMessageToConnectedClient(client2, targetMessage);
         const savedMeeting = await newMeeting.save();
-        res.status(201).json({ message: "Un nouveau match !" });
+        res.status(201).json({
+          message: "Un nouveau match !",
+          data: { meetingId: savedMeeting.id },
+        });
       } else {
         const targetClient = animal_liked.owner._id.toString();
         const targetMessage = "Un nouveau like !";

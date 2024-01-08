@@ -98,6 +98,7 @@ router.get("/matches", authenticate, async function (req, res, next) {
 });
 
 // les administrateurs peuvent voir des utilisateurs spécifiques, un utilisateur peut uniquement voir son profil
+
 router.get("/:userID", authenticate, async (req, res, next) => {
   try {
     const authenticatedUserId = req.currentUserId;
