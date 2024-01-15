@@ -42,7 +42,7 @@ router.post("/login", async (req, res, next) => {
       if (err) {
         return next(err);
       }
-      res.send({ Prénom: user.firstName, Email: user.email, Token: token });
+      res.send({ User: user, Token: token });
     });
   } catch (err) {
     next(err);
