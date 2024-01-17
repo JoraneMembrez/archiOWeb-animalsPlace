@@ -38,6 +38,9 @@ app.use("/users", usersRouter);
 app.use("/animals", animalsRouter);
 app.use("/auth", authRouter);
 app.use("/meetings", meetingsRouter);
+app.use("/uploads/:fileName", () => {
+  res.sendFile(path.join(__dirname, "uploads", fileName));
+});
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
