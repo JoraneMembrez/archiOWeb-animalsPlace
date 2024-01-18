@@ -95,19 +95,10 @@ router.post("/", authenticate, async (req, res, next) => {
       species !== "chien" &&
       species !== "chat" &&
       species !== "lapin" &&
-      species !== "furet" &&
-      species !== "hamster" &&
-      species !== "oiseau" &&
-      species !== "tortue" &&
-      species !== "poisson" &&
-      species !== "souris" &&
-      species !== "caméléon" &&
-      species !== "serpent" &&
-      species !== "araigné" &&
-      species !== "autre"
+      species !== "cheval"
     ) {
       const error = new Error(
-        "Le champ species (espèce) doit être une des suivantes : chien, chat, lapin, furet, hamster, oiseau, tortue, poisson, souris, caméléon, serpent, araigné, autre"
+        "Le champ species (espèce) doit être une des suivantes : chien, chat, lapin, cheval"
       );
       error.status = 400;
       throw error;
@@ -252,7 +243,7 @@ router.patch("/:animalId", authenticate, async (req, res, next) => {
 
     if (disallowedUpdates.length > 0) {
       res.status(400).json({
-        message: `Modification non autorisée des champs : ${disallowedUpdates.join(
+        message: `Modification autorisée des champs : ${disallowedUpdates.join(
           ", "
         )}`,
       });

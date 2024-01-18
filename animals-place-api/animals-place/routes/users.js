@@ -130,7 +130,7 @@ router.get("/:userID", authenticate, async (req, res, next) => {
 });
 
 const emailRegex = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+const passwordRegex = /"^(?=.*[A-Z])[a-zA-Z\d]{5,}$"/;
 const firstNameRegex = /^[a-zA-ZÀ-ÖØ-öø-ÿ-]{2,50}$/;
 // Créer un utilisateur
 router.post("/", async (req, res, next) => {
