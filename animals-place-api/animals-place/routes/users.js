@@ -130,7 +130,7 @@ router.get("/:userID", authenticate, async (req, res, next) => {
 });
 
 const emailRegex = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
-const passwordRegex = /"^(?=.*[A-Z])[a-zA-Z\d]{5,}$"/;
+const passwordRegex = /^(?=.*[A-Z])[a-zA-Z\d!@#$%^&*]{5,}$/;
 const firstNameRegex = /^[a-zA-ZÀ-ÖØ-öø-ÿ-]{2,50}$/;
 // Créer un utilisateur
 router.post("/", async (req, res, next) => {
@@ -158,7 +158,7 @@ router.post("/", async (req, res, next) => {
     const isValidPassword = passwordRegex.test(plainPassword);
     if (!isValidPassword) {
       const error = new Error(
-        "Le mot de passe doit contenir au moins 8 caractères, une majuscule et un chiffre"
+        "Le mot de passe doit contenir au moins 5 caractères, une majuscule et un chiffre"
       );
       error.status = 400;
       throw error;
