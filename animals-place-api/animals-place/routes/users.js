@@ -223,16 +223,6 @@ router.patch(
         });
       }
 
-      const isValidUpdate = Object.keys(updates).every((update) =>
-        User.schema.paths.hasOwnProperty(update)
-      );
-
-      if (!isValidUpdate) {
-        return res
-          .status(404)
-          .json({ message: "Champ(s) non valide(s) pour la mise à jour" });
-      }
-
       if (userLog.role === "admin") {
         Object.assign(userToUpdate, updates);
         const updatedUser = await userToUpdate.save();
