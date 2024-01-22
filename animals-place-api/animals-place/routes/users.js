@@ -12,42 +12,37 @@ import Animal from "../models/animal.js";
 const router = express.Router();
 
 // liste paginée on peut voir 5 utilisateurs par page uniquement si on est admin, on n'a pas le droit de voir les profils de tout le monde
-router.get(
-  "/",
-  authenticate,
-  authorize("admin"),
-  async function (req, res, next) {
-    let page = parseInt(req.query.page) || 1; // Récupère le numéro de page ou la page 1 par défaut
-    if (isNaN(page) || page < 1) {
-      page = 1;
-    }
-
-    let pageSize = parseInt(req.query.pageSize, 10); // Nombre d'utilisateurs par page
-    if (isNaN(pageSize) || pageSize < 1 || pageSize > 100) {
-      pageSize = 5; // Par défaut, 5 utilisateurs par page
-    }
-
-    try {
-      const totalUsers = await User.countDocuments();
-      const totalPages = Math.ceil(totalUsers / pageSize);
-
-      const users = await User.find()
-        .collation({ locale: "en", strength: 2 }) // Utilisé pour ignorer les majuscules
-        .sort({ name: 1 })
-        .skip((page - 1) * pageSize) // Ignorer les résultats des pages précédentes
-        .limit(pageSize) // Limiter le nombre de résultats par page
-        .exec();
-
-      res.send({
-        users,
-        currentPage: page,
-        totalPages,
-      });
-    } catch (err) {
-      next(err);
-    }
+router.get("/", authenticate, async function (req, res, next) {
+  let page = parseInt(req.query.page) || 1; // Récupère le numéro de page ou la page 1 par défaut
+  if (isNaN(page) || page < 1) {
+    page = 1;
   }
-);
+
+  let pageSize = parseInt(req.query.pageSize, 10); // Nombre d'utilisateurs par page
+  if (isNaN(pageSize) || pageSize < 1 || pageSize > 100) {
+    pageSize = 5; // Par défaut, 5 utilisateurs par page
+  }
+
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalPages = Math.ceil(totalUsers / pageSize);
+
+    const users = await User.find()
+      .collation({ locale: "en", strength: 2 }) // Utilisé pour ignorer les majuscules
+      .sort({ name: 1 })
+      .skip((page - 1) * pageSize) // Ignorer les résultats des pages précédentes
+      .limit(pageSize) // Limiter le nombre de résultats par page
+      .exec();
+
+    res.send({
+      users,
+      currentPage: page,
+      totalPages,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get("/who", authenticate, async function (req, res, next) {
   try {
