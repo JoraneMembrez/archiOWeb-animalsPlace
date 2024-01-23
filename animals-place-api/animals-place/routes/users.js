@@ -109,10 +109,16 @@ router.get("/:userID", authenticate, async (req, res, next) => {
       return;
     }
 
-    // const isAdmin = userLog.role === "admin";
+    const isAdmin = userLog.role === "admin";
 
     // Vérifier si l'utilisateur actuel est l'utilisateur dont on affiche le profil
     const isRequestedUser = authenticatedUserId === requestedUserId;
+
+    if (isAdmin || isRequestedUser) {
+      res.send(user);
+    } else {
+      res.status(403).json({ message: "Interdit" });
+    }
   } catch (err) {
     next(err);
   }
