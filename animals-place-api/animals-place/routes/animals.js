@@ -2,7 +2,7 @@ import express from "express";
 import Animal from "../models/animal.js";
 import User from "../models/user.js";
 import Meeting from "../models/meeting.js";
-import { authenticate, authorize } from "./auth.js";
+import { authenticate } from "./auth.js";
 import { broadcastMessage } from "../ws.js";
 import Image from "../models/image.js";
 import fs from "fs";
@@ -154,62 +154,53 @@ router.post("/", authenticate, async (req, res, next) => {
 });
 
 // supprimer un animal 🐒
-router.delete(
-  "/:animalId",
-  [authenticate, authorize("admin")],
-  async (req, res, next) => {
-    try {
-      const userID = req.currentUserId;
-      //  userID.role = "admin";
-      const animalId = req.params.animalId;
+router.delete("/:animalId", authenticate, async (req, res, next) => {
+  try {
+    const animalId = req.params.animalId;
 
-      //vérifier que l'ID est valide
-      const validId = mongoose.Types.ObjectId.isValid(animalId);
-      if (!validId) {
-        const error = new Error(`L'ID ${animalId} n'est pas valide`);
-        error.status = 400;
-        throw error;
-      }
-
-      const deletedAnimal = await Animal.findById(animalId);
-
-      if (!deletedAnimal) {
-        const error = new Error(`L'animal avec l'ID ${animalId} n'existe pas`);
-        error.status = 404;
-        throw error;
-      }
-
-      // Vérifier si l'utilisateur est le propriétaire de l'animal
-      /*    if (
-        deletedAnimal.owner.toString() !== req.currentUserId ||
-        req.userID.role !== "admin"
-      ) {
-        const error = new Error(
-          `Vous n'êtes pas autorisé à supprimer cet animal`
-        );
-        error.status = 403;
-        throw error;
-      } */
-
-      // Supprimer l'animal de la liste d'animaux de l'utilisateur
-      const user = await User.findById(req.currentUserId);
-      user.animals.pull(deletedAnimal._id);
-      // Trouver si l'animal avait des meetings et les supprimer
-      const meetings = await Meeting.find({
-        $or: [{ animal1: deletedAnimal._id }, { animal2: deletedAnimal._id }],
-      });
-      meetings.forEach(async (meeting) => {
-        await Meeting.findByIdAndDelete(meeting._id);
-      });
-
-      await deletedAnimal.deleteOne(); // Supprimer l'animal de la base de données
-      await user.save();
-      return res.status(204).json();
-    } catch (error) {
-      next(error);
+    //vérifier que l'ID est valide
+    const validId = mongoose.Types.ObjectId.isValid(animalId);
+    if (!validId) {
+      const error = new Error(`L'ID ${animalId} n'est pas valide`);
+      error.status = 400;
+      throw error;
     }
+
+    const deletedAnimal = await Animal.findById(animalId);
+
+    if (!deletedAnimal) {
+      const error = new Error(`L'animal avec l'ID ${animalId} n'existe pas`);
+      error.status = 404;
+      throw error;
+    }
+
+    // Vérifier si l'utilisateur est le propriétaire de l'animal
+    if (deletedAnimal.owner.toString() !== req.currentUserId) {
+      const error = new Error(
+        `Vous n'êtes pas autorisé à supprimer cet animal`
+      );
+      error.status = 403;
+      throw error;
+    }
+
+    // Supprimer l'animal de la liste d'animaux de l'utilisateur
+    const user = await User.findById(req.currentUserId);
+    user.animals.pull(deletedAnimal._id);
+    // Trouver si l'animal avait des meetings et les supprimer
+    const meetings = await Meeting.find({
+      $or: [{ animal1: deletedAnimal._id }, { animal2: deletedAnimal._id }],
+    });
+    meetings.forEach(async (meeting) => {
+      await Meeting.findByIdAndDelete(meeting._id);
+    });
+
+    await deletedAnimal.deleteOne(); // Supprimer l'animal de la base de données
+    await user.save();
+    return res.status(204).json();
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 router.patch("/:animalId", authenticate, async (req, res, next) => {
   try {
