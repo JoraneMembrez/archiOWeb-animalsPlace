@@ -241,15 +241,6 @@ router.patch("/:animalId", authenticate, async (req, res, next) => {
 
     console.log(disallowedUpdates);
 
-    if (disallowedUpdates.length > 0) {
-      res.status(400).json({
-        message: `Modification autorisée des champs : ${disallowedUpdates.join(
-          ", "
-        )}`,
-      });
-      return;
-    }
-
     Object.assign(animal, allowUpdates);
 
     console.log("animal", animal);
