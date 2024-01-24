@@ -175,7 +175,10 @@ router.delete("/:animalId", authenticate, async (req, res, next) => {
     }
 
     // Vérifier si l'utilisateur est le propriétaire de l'animal
-    if (deletedAnimal.owner.toString() !== req.currentUserId) {
+    if (
+      deletedAnimal.owner.toString() !== req.currentUserId ||
+      req.role !== "admin"
+    ) {
       const error = new Error(
         `Vous n'êtes pas autorisé à supprimer cet animal`
       );
