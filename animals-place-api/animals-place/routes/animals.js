@@ -160,7 +160,7 @@ router.delete(
   async (req, res, next) => {
     try {
       const userID = req.currentUserId;
-      userID.role = "admin";
+      //  userID.role = "admin";
       const animalId = req.params.animalId;
 
       //vérifier que l'ID est valide
@@ -180,7 +180,7 @@ router.delete(
       }
 
       // Vérifier si l'utilisateur est le propriétaire de l'animal
-      if (
+      /*    if (
         deletedAnimal.owner.toString() !== req.currentUserId ||
         req.userID.role !== "admin"
       ) {
@@ -189,7 +189,7 @@ router.delete(
         );
         error.status = 403;
         throw error;
-      }
+      } */
 
       // Supprimer l'animal de la liste d'animaux de l'utilisateur
       const user = await User.findById(req.currentUserId);
